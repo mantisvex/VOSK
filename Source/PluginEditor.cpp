@@ -6,6 +6,8 @@ using namespace vosk::ui;
 VoskAudioProcessorEditor::VoskAudioProcessorEditor (VoskAudioProcessor& p)
     : juce::AudioProcessorEditor (&p),
       proc (p),
+      presetManager (p.apvts),
+      presetBar (presetManager),
       osc1 (p.apvts, 1, col::magenta),
       osc2 (p.apvts, 2, col::magenta),
       osc3 (p.apvts, 3, col::magenta),
@@ -30,6 +32,8 @@ VoskAudioProcessorEditor::VoskAudioProcessorEditor (VoskAudioProcessor& p)
              &osc1, &osc2, &osc3, &sources, &filter, &ampEnv, &filterEnv,
              &lfo1, &lfo2, &matrix, &chorus, &delay, &reverb, &macros, &global })
         addAndMakeVisible (c);
+
+    addAndMakeVisible (presetBar);
 
     setResizable (true, true);
     setResizeLimits (1060, 820, 1900, 1500);
@@ -94,9 +98,11 @@ void VoskAudioProcessorEditor::paint (juce::Graphics& g)
     g.drawText ("MANTISVEX  //  DARKSYNTH ENGINE",
                 header.withTrimmedLeft (8), juce::Justification::centredLeft);
 
-    g.setColour (col::magenta.withAlpha (0.8f));
-    g.setFont (vosk::ui::fontKerned (10.5f, 0.25f, true));
-    g.drawText ("v0.1  ·  STAGE 1-6", header, juce::Justification::centredRight);
+    // "PRESET" caption above the browser bar (which is positioned in resized()).
+    g.setColour (col::dim);
+    g.setFont (vosk::ui::fontKerned (9.0f, 0.3f, true));
+    g.drawText ("PRESET", header.removeFromRight (560).removeFromTop (12).withTrimmedTop (1),
+                juce::Justification::topLeft);
 
     // Divider with accent fade.
     auto divider = getLocalBounds().reduced (14).withTrimmedTop (58).removeFromTop (1).toFloat();
@@ -107,6 +113,13 @@ void VoskAudioProcessorEditor::paint (juce::Graphics& g)
 
 void VoskAudioProcessorEditor::resized()
 {
+    // Preset browser bar in the header (right side).
+    {
+        auto header = getLocalBounds().reduced (14).removeFromTop (52);
+        auto pb = header.removeFromRight (540);
+        presetBar.setBounds (pb.withSizeKeepingCentre (540, 30).translated (0, 4));
+    }
+
     auto r = getLocalBounds().reduced (12);
     r.removeFromTop (58); // header
 

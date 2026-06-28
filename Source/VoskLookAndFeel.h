@@ -208,16 +208,18 @@ namespace vosk::ui
                                    bool isOver, bool isDown) override
         {
             auto r = b.getLocalBounds().toFloat().reduced (0.5f);
+            const bool toggle = b.getClickingTogglesState();
             const bool on = b.getToggleState();
-            auto base = on ? backgroundColour.withAlpha (0.18f) : col::panel2;
+            auto base = (toggle && on) ? backgroundColour.withAlpha (0.18f) : col::panel2;
             if (isDown) base = base.brighter (0.10f);
-            else if (isOver) base = base.brighter (0.04f);
+            else if (isOver) base = base.brighter (0.05f);
             g.setColour (base);
             g.fillRoundedRectangle (r, 5.0f);
-            g.setColour (on ? backgroundColour : col::line);
-            g.drawRoundedRectangle (r, 5.0f, on ? 1.4f : 1.0f);
+            g.setColour ((toggle && on) ? backgroundColour : col::line);
+            g.drawRoundedRectangle (r, 5.0f, (toggle && on) ? 1.4f : 1.0f);
 
-            // LED dot.
+            if (! toggle) return; // momentary buttons: no LED
+
             const float d = 6.0f;
             const float lx = r.getX() + 8.0f;
             const float ly = r.getCentreY() - d * 0.5f;
@@ -235,7 +237,8 @@ namespace vosk::ui
             g.setColour (b.findColour (b.getToggleState() ? juce::TextButton::textColourOnId
                                                           : juce::TextButton::textColourOffId));
             g.setFont (getTextButtonFont (b, b.getHeight()));
-            auto area = b.getLocalBounds().withTrimmedLeft (16);
+            auto area = b.getClickingTogglesState() ? b.getLocalBounds().withTrimmedLeft (16)
+                                                    : b.getLocalBounds();
             g.drawText (b.getButtonText(), area, juce::Justification::centred, false);
         }
     };

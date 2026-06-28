@@ -20,6 +20,9 @@ private:
     VoskAudioProcessor& proc;
     vosk::ui::LookAndFeel lnf;
 
+    vosk::PresetManager   presetManager;
+    vosk::ui::PresetBar   presetBar;
+
     vosk::ui::OscPanel     osc1, osc2, osc3;
     vosk::ui::SourcesPanel sources;
     vosk::ui::FilterPanel  filter;

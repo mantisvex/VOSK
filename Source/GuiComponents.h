@@ -6,6 +6,7 @@
 #include "VoskLookAndFeel.h"
 #include "Parameters.h"
 #include "ModMatrix.h"
+#include "PresetManager.h"
 
 //==============================================================================
 //  Reusable VOSK GUI widgets + section panels. Everything attaches to the APVTS.
@@ -138,6 +139,107 @@ namespace vosk::ui
         GlyphKind kind;
         juce::Colour accent;
         int num = 0, index = 0;
+    };
+
+    //--------------------------------------------------------------------------
+    //  Preset browser bar: [<] [Category v] [Preset v] [>]  [SAVE] [INIT]
+    class PresetBar : public juce::Component, private juce::ChangeListener
+    {
+    public:
+        explicit PresetBar (vosk::PresetManager& pm) : manager (pm)
+        {
+            cat.addItemList (manager.getCategories(), 1);
+            cat.setSelectedItemIndex (0, juce::dontSendNotification);
+            cat.onChange = [this] { rebuildPresetList(); };
+            addAndMakeVisible (cat);
+
+            preset.setTextWhenNothingSelected ("-- presets --");
+            preset.onChange = [this]
+            {
+                if (! updating && preset.getSelectedId() > 0)
+                    manager.load (cat.getText(), preset.getText());
+            };
+            addAndMakeVisible (preset);
+
+            prev.setButtonText ("<");
+            next.setButtonText (">");
+            save.setButtonText ("SAVE");
+            init.setButtonText ("INIT");
+            prev.onClick = [this] { manager.step (-1, cat.getText()); };
+            next.onClick = [this] { manager.step (+1, cat.getText()); };
+            init.onClick = [this] { manager.loadInit(); };
+            save.onClick = [this] { promptSave(); };
+            for (auto* b : std::initializer_list<juce::Button*> { &prev, &next, &save, &init })
+                addAndMakeVisible (b);
+
+            manager.addChangeListener (this);
+            rebuildPresetList();
+        }
+
+        ~PresetBar() override { manager.removeChangeListener (this); }
+
+        void resized() override
+        {
+            auto r = getLocalBounds();
+            prev.setBounds   (r.removeFromLeft (26).reduced (1, 2));
+            cat.setBounds    (r.removeFromLeft (118).reduced (2, 2));
+            preset.setBounds (r.removeFromLeft (220).reduced (2, 2));
+            next.setBounds   (r.removeFromLeft (26).reduced (1, 2));
+            r.removeFromLeft (8);
+            save.setBounds   (r.removeFromLeft (64).reduced (2, 2));
+            init.setBounds   (r.removeFromLeft (58).reduced (2, 2));
+        }
+
+    private:
+        juce::String currentCat() const { return cat.getText(); }
+
+        void rebuildPresetList()
+        {
+            updating = true;
+            preset.clear (juce::dontSendNotification);
+            preset.addItemList (manager.namesInCategory (currentCat()), 1);
+            const int idx = manager.namesInCategory (currentCat()).indexOf (manager.getCurrentName());
+            if (idx >= 0) preset.setSelectedItemIndex (idx, juce::dontSendNotification);
+            updating = false;
+        }
+
+        void changeListenerCallback (juce::ChangeBroadcaster*) override
+        {
+            // A load happened (prev/next/save): refresh categories + selection.
+            updating = true;
+            const auto savedCat = cat.getText();
+            cat.clear (juce::dontSendNotification);
+            cat.addItemList (manager.getCategories(), 1);
+            int ci = manager.getCategories().indexOf (savedCat);
+            if (ci < 0) ci = 0;
+            cat.setSelectedItemIndex (ci, juce::dontSendNotification);
+            updating = false;
+            rebuildPresetList();
+        }
+
+        void promptSave()
+        {
+            auto* w = new juce::AlertWindow ("Save Preset", "Preset name:",
+                                             juce::MessageBoxIconType::NoIcon);
+            w->addTextEditor ("name", manager.getCurrentName());
+            w->addButton ("Save",   1, juce::KeyPress (juce::KeyPress::returnKey));
+            w->addButton ("Cancel", 0, juce::KeyPress (juce::KeyPress::escapeKey));
+            w->enterModalState (true, juce::ModalCallbackFunction::create (
+                [this, w] (int res)
+                {
+                    if (res == 1)
+                    {
+                        const auto nm = w->getTextEditorContents ("name").trim();
+                        if (nm.isNotEmpty()) manager.saveUser (nm);
+                    }
+                    delete w;
+                }), false);
+        }
+
+        vosk::PresetManager& manager;
+        juce::ComboBox cat, preset;
+        juce::TextButton prev, next, save, init;
+        bool updating = false;
     };
 
     //--------------------------------------------------------------------------

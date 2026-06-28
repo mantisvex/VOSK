@@ -48,6 +48,11 @@ All controls attach to the APVTS.
   gesture — a hardwired multi-target move that simultaneously drives the pre-filter drive
   up, pulls cutoff down (up to 4 octaves), and widens unison detune on all oscillators,
   "dirtying" the whole patch in one knob. ROT is also a matrix source for extra routing.
+- **Preset system** (`Presets.h`, `PresetManager.h`): a categorised browser in the header
+  (`< [Category] [Preset] > SAVE INIT`) with a factory library of ~28 ready-to-play
+  darksynth patches (heavy Carpenter Brut / Magonia-style basses plus leads, plucks, stabs,
+  FX). Presets are sparse overrides on the defaults; user presets save to
+  `Documents/MantisVex/VOSK/Presets/*.voskpreset` and appear under a "User" category.
 - **Poly** (8 voices, JUCE stealing) / **Mono** / **Legato** with exponential
   **glide** and **pitch bend**.
 

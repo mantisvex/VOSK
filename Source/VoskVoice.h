@@ -140,6 +140,10 @@ private:
     float phaseA[3][kMaxUni] { { 0.0f } };
     float triA  [3][kMaxUni] { { 0.0f } }; // triangle leaky-integrator states
 
+    // Analog pitch drift (slow random walk per osc-voice -> "alive" detuning).
+    float drift   [3][kMaxUni] { { 0.0f } }; // current drift in cents
+    float driftMul[3][kMaxUni] { { 1.0f } }; // exp2(cents/1200), updated per block
+
     // osc1 hard-sync reset BLEP state (per unison voice).
     float blepNext1     [kMaxUni] { 0.0f };
     bool  syncSkipRising[kMaxUni] { false };

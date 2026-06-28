@@ -49,6 +49,8 @@ void VoskVoice::resetState() noexcept
         {
             phaseA[o][k] = 0.0f;
             triA[o][k]   = 0.0f;
+            drift[o][k]    = 0.0f;
+            driftMul[o][k] = 1.0f;
         }
 
     for (int k = 0; k < kMaxUni; ++k)
@@ -417,6 +419,16 @@ void VoskVoice::renderNextBlock (juce::AudioBuffer<float>& outputBuffer,
 
     updateBankConfigs (voiceMode, srcSnapshot);
 
+    // Analog drift: a slow bounded random walk per active osc-voice (±5 cents)
+    // so unison/oscillators breathe instead of sitting perfectly static.
+    for (int o = 0; o < 3; ++o)
+        for (int k = 0; k < cfg[o].count; ++k)
+        {
+            drift[o][k] = juce::jlimit (-5.0f, 5.0f,
+                                        drift[o][k] + (rng.nextFloat() * 2.0f - 1.0f) * 0.7f);
+            driftMul[o][k] = std::exp2 (drift[o][k] / 1200.0f);
+        }
+
     // ---- Per-block parameter snapshot --------------------------------------
     const Wave  w1 = (Wave) (int) params->oscWave[0]->load();
     const Wave  w2 = (Wave) (int) params->oscWave[1]->load();
@@ -588,7 +600,7 @@ void VoskVoice::renderNextBlock (juce::AudioBuffer<float>& outputBuffer,
         float o3mono = 0.0f, o3L = 0.0f, o3R = 0.0f;
         for (int k = 0; k < cfg[2].count; ++k)
         {
-            const float dt = limitDt (noteFreq * ratio3 * pMul3 * cfg[2].freqMul[k]);
+            const float dt = limitDt (noteFreq * ratio3 * pMul3 * cfg[2].freqMul[k] * driftMul[2][k]);
             const float val = renderValue (w3, phaseA[2][k], pw3e, dt, triA[2][k]);
             phaseA[2][k] += dt;
             if (phaseA[2][k] >= 1.0f) phaseA[2][k] -= 1.0f;
@@ -618,7 +630,7 @@ void VoskVoice::renderNextBlock (juce::AudioBuffer<float>& outputBuffer,
         float o2L = 0.0f, o2R = 0.0f;
         for (int k = 0; k < cfg[1].count; ++k)
         {
-            const float dt = limitDt (noteFreq * ratio2 * pMul2 * cfg[1].freqMul[k]);
+            const float dt = limitDt (noteFreq * ratio2 * pMul2 * cfg[1].freqMul[k] * driftMul[1][k]);
             const float val = renderValue (w2, phaseA[1][k], pw2e, dt, triA[1][k]);
             phaseA[1][k] += dt;
             if (phaseA[1][k] >= 1.0f) phaseA[1][k] -= 1.0f;
@@ -635,7 +647,7 @@ void VoskVoice::renderNextBlock (juce::AudioBuffer<float>& outputBuffer,
         float o1L = 0.0f, o1R = 0.0f;
         for (int k = 0; k < cfg[0].count; ++k)
         {
-            const float dt = limitDt (noteFreq * ratio1 * pMul1 * cfg[0].freqMul[k] * syncFactor);
+            const float dt = limitDt (noteFreq * ratio1 * pMul1 * cfg[0].freqMul[k] * syncFactor * driftMul[0][k]);
             const float prevPhase = phaseA[0][k];
 
             float val = renderOsc1Voice (k, w1, pw1e, dt, pmOffset);

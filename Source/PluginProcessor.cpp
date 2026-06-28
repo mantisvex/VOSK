@@ -44,6 +44,8 @@ void VoskAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     fxChain.prepare (sampleRate);
     fxChain.reset();
 
+    dcX[0] = dcX[1] = dcY[0] = dcY[1] = 0.0f;
+
     // Per-voice oversampling adds a fixed latency; report it (all voices match).
     setLatencySamples (juce::roundToInt (monoVoice.getOversamplingLatency()));
 
@@ -100,6 +102,45 @@ void VoskAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     fxChain.process (buffer, modInputs.bpm);
 
     buffer.applyGain (params.masterVol->load());
+
+    outputStage (buffer);
+}
+
+//==============================================================================
+//  Output safety + final glue: kill NaN/inf, block DC (asymmetric drive can
+//  leave an offset that triggers host auto-mute), and gently soft-clip so
+//  runaway resonance / self-oscillation can never exceed 0 dBFS. Below ~-0.7 dB
+//  the signal is left untouched, so clean patches stay clean; pushed patches get
+//  a touch of output grit (which suits the genre).
+void VoskAudioProcessor::outputStage (juce::AudioBuffer<float>& buffer)
+{
+    const int numCh = juce::jmin (2, buffer.getNumChannels());
+    const float th = 0.92f;
+    const float inv = 1.0f - th;
+
+    for (int ch = 0; ch < numCh; ++ch)
+    {
+        float* d = buffer.getWritePointer (ch);
+        float x1 = dcX[ch], y1 = dcY[ch];
+
+        for (int i = 0; i < buffer.getNumSamples(); ++i)
+        {
+            float x = d[i];
+            if (! std::isfinite (x)) x = 0.0f;
+
+            // DC blocker (one-pole high-pass at a few Hz).
+            const float y = x - x1 + 0.9995f * y1;
+            x1 = x; y1 = y;
+
+            // Soft clip above threshold only.
+            float o = y;
+            if (o >  th) o =  th + inv * std::tanh ((o - th) / inv);
+            else if (o < -th) o = -th + inv * std::tanh ((o + th) / inv);
+            d[i] = o;
+        }
+
+        dcX[ch] = x1; dcY[ch] = y1;
+    }
 }
 
 //==============================================================================

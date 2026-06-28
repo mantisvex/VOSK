@@ -50,6 +50,7 @@ public:
 private:
     void renderMono (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi,
                      int numSamples, bool legato);
+    void outputStage (juce::AudioBuffer<float>& buffer);
     void handleMonoMidi (const juce::MidiMessage& m, bool legato);
     void panic();
 
@@ -68,6 +69,10 @@ private:
     float monoVelocity = 0.8f;
 
     int lastVoiceMode = -1;
+
+    // Output safety: DC blocker state per channel.
+    float dcX[2] { 0.0f, 0.0f };
+    float dcY[2] { 0.0f, 0.0f };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VoskAudioProcessor)
 };

@@ -71,10 +71,12 @@ namespace vosk
         }
 
         // resonance in [0,1] -> feedback k in [0,4]; comp restores passband level.
+        // comp is gentle (not 1+k) so resonance + pre-filter drive don't stack into
+        // a runaway: self-oscillation is still reachable near the top, but bounded.
         void setResonance (float r) noexcept
         {
-            k = r * 4.0f;
-            comp = 1.0f + k;
+            k = r * 3.8f;
+            comp = 1.0f + 0.35f * k;
         }
 
         float process (int ch, float x) noexcept
@@ -122,8 +124,10 @@ namespace vosk
             G = g / (1.0f + g);
         }
 
-        // resonance in [0,1] -> loop gain R approaching 1 (self-oscillation).
-        void setResonance (float r) noexcept { R = r * 0.97f; }
+        // resonance in [0,1] -> loop gain R. Capped below 1 and the saturated
+        // feedback (Kc) is clamped low so the Korg35 screams without a Larsen
+        // runaway. Self-oscillation is reachable but stays a bounded limit cycle.
+        void setResonance (float r) noexcept { R = r * 0.92f; }
 
         float process (int ch, float x) noexcept
         {
@@ -142,7 +146,7 @@ namespace vosk
             // Saturate the resonance (HP1) feedback, then resolve open-loop.
             const float hp = a * (yLin - sC[ch]);          // HP1 output estimate
             float Kc = R / (G * a);                          // = R*(1+g)^2/g
-            if (Kc > 50.0f) Kc = 50.0f;
+            if (Kc > 10.0f) Kc = 10.0f;                       // clamp feedback gain (anti-Larsen)
             const float u = yA + Kc * std::tanh (hp);
 
             const float y = G * u + betaB;                   // LP2 output

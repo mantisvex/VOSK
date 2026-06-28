@@ -221,6 +221,9 @@ void VoskVoice::updateBankConfigs (int voiceMode, const float* srcSnapshot) noex
     const Dest detuneDest[3] { Dest::Osc1UniDetune, Dest::Osc2UniDetune, Dest::Osc3UniDetune };
     const Dest spreadDest[3] { Dest::Osc1UniSpread, Dest::Osc2UniSpread, Dest::Osc3UniSpread };
 
+    // Hero ("ROT") gesture widens unison detune on all oscillators.
+    const float heroDetune = params->hero->load() * 0.5f;
+
     for (int o = 0; o < 3; ++o)
     {
         const int rawVoices = juce::jlimit (1, kMaxUni, (int) params->oscUniVoices[o]->load());
@@ -228,7 +231,7 @@ void VoskVoice::updateBankConfigs (int voiceMode, const float* srcSnapshot) noex
         // Poly CPU cap: poly -> max 4 per oscillator; mono/legato -> full 7.
         const int eff = (voiceMode == 0) ? juce::jmin (rawVoices, 4) : rawVoices;
 
-        const float d   = juce::jlimit (0.0f, 1.0f, params->oscUniDetune[o]->load() + modFor (detuneDest[o]));
+        const float d   = juce::jlimit (0.0f, 1.0f, params->oscUniDetune[o]->load() + modFor (detuneDest[o]) + heroDetune);
         const float det = szabo::detuneCurve (d);
         const float spread = juce::jlimit (0.0f, 1.0f, params->oscUniSpread[o]->load() + modFor (spreadDest[o]));
 
@@ -382,10 +385,15 @@ void VoskVoice::renderNextBlock (juce::AudioBuffer<float>& outputBuffer,
         matAmt[i] = params->modAmount[i]->load();
     }
 
-    // Per-block source values (MIDI / host) shared by all destinations.
+    // Per-block source values (MIDI / host / macros) shared by all destinations.
     const float modWheel   = modIn != nullptr ? modIn->modWheel   : 0.0f;
     const float aftertouch = modIn != nullptr ? modIn->aftertouch : 0.0f;
     const double bpm       = modIn != nullptr ? modIn->bpm        : 120.0;
+    const float macro1 = params->macro[0]->load();
+    const float macro2 = params->macro[1]->load();
+    const float macro3 = params->macro[2]->load();
+    const float macro4 = params->macro[3]->load();
+    const float hero   = params->hero->load();
 
     // Source snapshot for the block-rate unison detune/spread modulation. Uses
     // the previous block's last env/LFO values (one block latent, inaudible).
@@ -400,7 +408,11 @@ void VoskVoice::renderNextBlock (juce::AudioBuffer<float>& outputBuffer,
         srcSnapshot[(int) Source::KeyTrack]   = keyTrackNorm;
         srcSnapshot[(int) Source::ModWheel]   = modWheel;
         srcSnapshot[(int) Source::Aftertouch] = aftertouch;
-        // Macros remain 0 (reserved for stage 6).
+        srcSnapshot[(int) Source::Macro1]     = macro1;
+        srcSnapshot[(int) Source::Macro2]     = macro2;
+        srcSnapshot[(int) Source::Macro3]     = macro3;
+        srcSnapshot[(int) Source::Macro4]     = macro4;
+        srcSnapshot[(int) Source::HeroMacro]  = hero;
     }
 
     updateBankConfigs (voiceMode, srcSnapshot);
@@ -537,7 +549,11 @@ void VoskVoice::renderNextBlock (juce::AudioBuffer<float>& outputBuffer,
         src[(int) Source::KeyTrack]   = keyTrackNorm;
         src[(int) Source::ModWheel]   = modWheel;
         src[(int) Source::Aftertouch] = aftertouch;
-        // Macros stay 0 (reserved for stage 6).
+        src[(int) Source::Macro1]     = macro1;
+        src[(int) Source::Macro2]     = macro2;
+        src[(int) Source::Macro3]     = macro3;
+        src[(int) Source::Macro4]     = macro4;
+        src[(int) Source::HeroMacro]  = hero;
 
         // Sum matrix contributions per destination. (No modulation-of-modulation:
         // destinations are DSP params only, and sources are never destinations.)
@@ -667,12 +683,17 @@ void VoskVoice::renderNextBlock (juce::AudioBuffer<float>& outputBuffer,
         sR[s] = o1R * lvl1e + o2R * lvl2e + o3R * lvl3e + monoExtra;
 
         // ===== Per-sample control signals ===================================
+        // Hero ("ROT") gesture, hardwired: drive up, cutoff down (octaves),
+        // unison detune wider (the detune part is applied in updateBankConfigs).
+        const float heroDrive  = hero * 0.8f;
+        const float heroCutOct = -hero * 4.0f;
+
         ampArr[(size_t) s]       = env1s;                      // Env1 -> amp (hardwired)
-        driveArr[(size_t) s]     = juce::jlimit (0.0f, 1.0f, baseDrive + modV (Dest::Drive));
+        driveArr[(size_t) s]     = juce::jlimit (0.0f, 1.0f, baseDrive + modV (Dest::Drive) + heroDrive);
         resonanceArr[(size_t) s] = juce::jlimit (0.0f, 1.0f, baseResonance + modV (Dest::Resonance));
         panArr[(size_t) s]       = juce::jlimit (-1.0f, 1.0f, modV (Dest::VoicePan));
         cutoffArr[(size_t) s]    = computeCutoff (baseCutoff, keyTrack, noteFreq,
-                                                  filterEnvAmt, env2s, modV (Dest::Cutoff));
+                                                  filterEnvAmt, env2s, modV (Dest::Cutoff) + heroCutOct);
     }
 
     // ========================================================================

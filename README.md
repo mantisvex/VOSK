@@ -1,9 +1,9 @@
-# VOSK — Stages 1–5: Voice + Unison + Filter + Modulation + FX
+# VOSK — Complete: Voice + Unison + Filter + Modulation + FX + Macros
 
-Darksynth / cyberpunk subtractive synthesizer (MantisVex). Stages: **1** band-limited
-oscillators + voicing, **2** Szabo supersaw unison, **3** pre-filter drive + two filter
-topologies + filter envelope, **4** 2 envelopes + 2 LFOs + 8-slot mod matrix, **5** FX
-chain (chorus → delay → reverb). Macros are the only remaining stage.
+Darksynth / cyberpunk subtractive synthesizer (MantisVex). All six stages built: **1**
+band-limited oscillators + voicing, **2** Szabo supersaw unison, **3** pre-filter drive +
+two filter topologies + filter envelope, **4** 2 envelopes + 2 LFOs + 8-slot mod matrix,
+**5** FX chain (chorus → delay → reverb), **6** macros (4 assignable + Hero "ROT").
 
 The GUI is a custom darksynth interface (`VoskLookAndFeel.h` + `GuiComponents.h`):
 charcoal panels with neon accent arcs, sectioned into 3 oscillators, sub/noise/sync,
@@ -44,6 +44,10 @@ All controls attach to the APVTS.
   a Juno-style BBD **chorus** (anti-phase L/R, mode I/II), a tempo-synced stereo **delay**
   (tone filter in the feedback path, ping-pong), and a dark **reverb** (Freeverb topology,
   dark-biased damping, separate size/decay, pre-delay). All default OFF.
+- **Macros** (stage 6): four assignable macros (matrix sources) plus the **Hero "ROT"**
+  gesture — a hardwired multi-target move that simultaneously drives the pre-filter drive
+  up, pulls cutoff down (up to 4 octaves), and widens unison detune on all oscillators,
+  "dirtying" the whole patch in one knob. ROT is also a matrix source for extra routing.
 - **Poly** (8 voices, JUCE stealing) / **Mono** / **Legato** with exponential
   **glide** and **pitch bend**.
 

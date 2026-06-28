@@ -101,6 +101,15 @@ namespace vosk::ids
     inline constexpr const char* kReverbDamping  = "reverbdamping";
     inline constexpr const char* kReverbPredelay = "reverbpredelay";
     inline constexpr const char* kReverbMix      = "reverbmix";
+
+    // Macros (stage 6). Macro1..4 are matrix sources; Hero ("ROT") is a defined
+    // multi-target gesture (drive up / cutoff down / unison detune wider) AND a
+    // matrix source.
+    inline constexpr const char* kMacro1 = "macro1";
+    inline constexpr const char* kMacro2 = "macro2";
+    inline constexpr const char* kMacro3 = "macro3";
+    inline constexpr const char* kMacro4 = "macro4";
+    inline constexpr const char* kHero   = "hero";
     inline constexpr const char* kMasterVol     = "mastervol";
     inline constexpr const char* kVoiceMode     = "voicemode";
     inline constexpr const char* kGlideTime     = "glidetime";
@@ -187,6 +196,9 @@ namespace vosk
         std::atomic<float>* reverbDamping = nullptr;
         std::atomic<float>* reverbPredelay = nullptr;
         std::atomic<float>* reverbMix = nullptr;
+
+        std::array<std::atomic<float>*, 4> macro { {} };
+        std::atomic<float>* hero = nullptr;
         std::atomic<float>* masterVol     = nullptr;
         std::atomic<float>* voiceMode     = nullptr;
         std::atomic<float>* glideTime     = nullptr;
@@ -273,6 +285,12 @@ namespace vosk
             reverbDamping = s.getRawParameterValue (kReverbDamping);
             reverbPredelay = s.getRawParameterValue (kReverbPredelay);
             reverbMix     = s.getRawParameterValue (kReverbMix);
+
+            macro[0] = s.getRawParameterValue (kMacro1);
+            macro[1] = s.getRawParameterValue (kMacro2);
+            macro[2] = s.getRawParameterValue (kMacro3);
+            macro[3] = s.getRawParameterValue (kMacro4);
+            hero     = s.getRawParameterValue (kHero);
             masterVol      = s.getRawParameterValue (kMasterVol);
             voiceMode      = s.getRawParameterValue (kVoiceMode);
             glideTime      = s.getRawParameterValue (kGlideTime);
@@ -529,6 +547,15 @@ namespace vosk
         layout.add (std::make_unique<juce::AudioParameterFloat> (
             pid (kReverbMix), "Reverb Mix",
             juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.25f));
+
+        // ---- Macros ----
+        for (int n = 1; n <= 4; ++n)
+            layout.add (std::make_unique<juce::AudioParameterFloat> (
+                pid ("macro" + juce::String (n)), "Macro " + juce::String (n),
+                juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.0f));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            pid (kHero), "ROT (Hero)",
+            juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.0f));
 
         // ---- Global ----
         layout.add (std::make_unique<juce::AudioParameterFloat> (

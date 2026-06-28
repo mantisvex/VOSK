@@ -21,13 +21,14 @@ VoskAudioProcessorEditor::VoskAudioProcessorEditor (VoskAudioProcessor& p)
       chorus (p.apvts),
       delay (p.apvts),
       reverb (p.apvts),
+      macros (p.apvts),
       global (p.apvts)
 {
     setLookAndFeel (&lnf);
 
     for (auto* c : std::initializer_list<juce::Component*> {
              &osc1, &osc2, &osc3, &sources, &filter, &ampEnv, &filterEnv,
-             &lfo1, &lfo2, &matrix, &chorus, &delay, &reverb, &global })
+             &lfo1, &lfo2, &matrix, &chorus, &delay, &reverb, &macros, &global })
         addAndMakeVisible (c);
 
     setResizable (true, true);
@@ -66,7 +67,7 @@ void VoskAudioProcessorEditor::paint (juce::Graphics& g)
 
     g.setColour (col::dim);
     g.setFont (juce::Font (juce::FontOptions (10.5f)).withExtraKerningFactor (0.2f));
-    g.drawText ("STAGE 1-5", header, juce::Justification::centredRight);
+    g.drawText ("STAGE 1-6", header, juce::Justification::centredRight);
 
     // Divider under the header.
     auto line = getLocalBounds().reduced (12).withTrimmedTop (54).removeFromTop (1);
@@ -100,9 +101,11 @@ void VoskAudioProcessorEditor::resized()
 
     r.removeFromTop (4);
 
-    // --- Global bar at the bottom ---
-    auto globalRow = r.removeFromBottom (104);
+    // --- Global + Macros bar at the bottom ---
+    auto globalRow = r.removeFromBottom (118);
+    auto macroCol = globalRow.removeFromRight (560);
     global.setBounds (globalRow.reduced (4));
+    macros.setBounds (macroCol.reduced (4));
 
     // --- FX row (above the global bar) ---
     auto fxRow = r.removeFromBottom (150);

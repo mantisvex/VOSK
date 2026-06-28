@@ -492,6 +492,33 @@ namespace vosk::ui
     };
 
     //==========================================================================
+    //  Macros: Hero ("ROT") gesture + 4 assignable macros.
+    class MacrosPanel : public Panel
+    {
+    public:
+        MacrosPanel (APVTS& s)
+            : Panel ("MACROS", col::magenta),
+              hero (s, ids::kHero,    "ROT", col::magenta),
+              m1   (s, ids::kMacro1,  "M1",  col::cyan),
+              m2   (s, ids::kMacro2,  "M2",  col::cyan),
+              m3   (s, ids::kMacro3,  "M3",  col::cyan),
+              m4   (s, ids::kMacro4,  "M4",  col::cyan)
+        {
+            for (auto* c : std::initializer_list<juce::Component*> { &hero, &m1, &m2, &m3, &m4 })
+                addAndMakeVisible (c);
+        }
+        void resized() override
+        {
+            auto area = content();
+            // Hero gets a wider dedicated slot on the left.
+            hero.setBounds (area.removeFromLeft (juce::jmin (110, area.getWidth() / 3)).reduced (4, 0));
+            gridLayout (area, { &m1, &m2, &m3, &m4 }, 4);
+        }
+    private:
+        Knob hero, m1, m2, m3, m4;
+    };
+
+    //==========================================================================
     //  Global bar (master, voice mode, glide, bend).
     class GlobalPanel : public Panel
     {

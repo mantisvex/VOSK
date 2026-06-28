@@ -43,36 +43,66 @@ VoskAudioProcessorEditor::~VoskAudioProcessorEditor()
 
 void VoskAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    // Background.
-    g.setGradientFill (juce::ColourGradient (col::bg, 0.0f, 0.0f,
-                                             col::bgDeep, 0.0f, (float) getHeight(), false));
+    const auto W = (float) getWidth();
+    const auto H = (float) getHeight();
+
+    // Base gradient.
+    g.setGradientFill (juce::ColourGradient (col::bg, 0.0f, 0.0f, col::bgDeep, 0.0f, H, false));
     g.fillAll();
 
-    // Header.
-    auto header = getLocalBounds().reduced (12).removeFromTop (50);
+    // Faint tech grid.
+    g.setColour (juce::Colours::white.withAlpha (0.012f));
+    for (float x = 0.0f; x < W; x += 26.0f) g.drawVerticalLine ((int) x, 0.0f, H);
+    for (float y = 0.0f; y < H; y += 26.0f) g.drawHorizontalLine ((int) y, 0.0f, W);
 
-    g.setColour (col::text);
-    g.setFont (juce::Font (juce::FontOptions (34.0f)).boldened().withExtraKerningFactor (0.20f));
-    auto title = header.removeFromLeft (190);
-    g.drawText ("VOSK", title, juce::Justification::centredLeft);
+    // Magenta glow behind the header + radial vignette.
+    g.setGradientFill (juce::ColourGradient (col::magenta.withAlpha (0.10f), 90.0f, 30.0f,
+                                             col::magenta.withAlpha (0.0f), 90.0f, 220.0f, true));
+    g.fillRect (0.0f, 0.0f, W, 240.0f);
+    g.setGradientFill (juce::ColourGradient (juce::Colours::transparentBlack, W * 0.5f, H * 0.5f,
+                                             juce::Colours::black.withAlpha (0.45f), W * 0.5f, H, true));
+    g.fillAll();
 
-    // Accent glyph next to the wordmark.
+    // ---- Header ----
+    auto header = getLocalBounds().reduced (14).removeFromTop (52);
+
+    // MantisVex mark: an angular mantis head (triangle + antennae).
+    auto markArea = header.removeFromLeft (46).toFloat();
+    const float mx = markArea.getCentreX(), my = markArea.getCentreY() + 2.0f;
+    juce::Path head;
+    head.addTriangle (mx, my + 13.0f, mx - 11.0f, my - 7.0f, mx + 11.0f, my - 7.0f);
+    g.setColour (col::magenta.withAlpha (0.18f));
+    g.fillPath (head);
     g.setColour (col::magenta);
-    g.fillRect (title.getX() + 2, header.getCentreY() + 16, 150, 2);
+    g.strokePath (head, juce::PathStrokeType (2.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    g.drawLine (mx - 5.0f, my - 7.0f, mx - 11.0f, my - 17.0f, 1.6f); // antennae
+    g.drawLine (mx + 5.0f, my - 7.0f, mx + 11.0f, my - 17.0f, 1.6f);
+    g.setColour (col::cyan);
+    g.fillEllipse (mx - 4.5f, my - 3.0f, 3.0f, 3.0f); // eyes
+    g.fillEllipse (mx + 1.5f, my - 3.0f, 3.0f, 3.0f);
+
+    // Wordmark.
+    auto title = header.removeFromLeft (180);
+    g.setColour (col::text);
+    g.setFont (vosk::ui::fontKerned (36.0f, 0.22f, true));
+    g.drawText ("VOSK", title, juce::Justification::centredLeft);
+    g.setColour (col::magenta);
+    g.fillRect ((float) title.getX() + 2.0f, (float) header.getCentreY() + 17.0f, 142.0f, 2.0f);
 
     g.setColour (col::dim);
-    g.setFont (juce::Font (juce::FontOptions (12.0f)).withExtraKerningFactor (0.25f));
+    g.setFont (vosk::ui::fontKerned (12.5f, 0.30f, true));
     g.drawText ("MANTISVEX  //  DARKSYNTH ENGINE",
-                header.withTrimmedLeft (6), juce::Justification::centredLeft);
+                header.withTrimmedLeft (8), juce::Justification::centredLeft);
 
-    g.setColour (col::dim);
-    g.setFont (juce::Font (juce::FontOptions (10.5f)).withExtraKerningFactor (0.2f));
-    g.drawText ("STAGE 1-6", header, juce::Justification::centredRight);
+    g.setColour (col::magenta.withAlpha (0.8f));
+    g.setFont (vosk::ui::fontKerned (10.5f, 0.25f, true));
+    g.drawText ("v0.1  ·  STAGE 1-6", header, juce::Justification::centredRight);
 
-    // Divider under the header.
-    auto line = getLocalBounds().reduced (12).withTrimmedTop (54).removeFromTop (1);
-    g.setColour (col::line);
-    g.fillRect (line);
+    // Divider with accent fade.
+    auto divider = getLocalBounds().reduced (14).withTrimmedTop (58).removeFromTop (1).toFloat();
+    g.setGradientFill (juce::ColourGradient (col::magenta.withAlpha (0.5f), divider.getX(), 0.0f,
+                                             col::line.withAlpha (0.0f), divider.getRight(), 0.0f, false));
+    g.fillRect (divider);
 }
 
 void VoskAudioProcessorEditor::resized()

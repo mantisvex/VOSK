@@ -15,6 +15,132 @@ namespace vosk::ui
     using APVTS = juce::AudioProcessorValueTreeState;
 
     //--------------------------------------------------------------------------
+    //  Waveform / shape glyphs drawn into a rect (one cycle, centred).
+    enum class GlyphKind { OscWave, SubWave, LfoShape };
+
+    inline void drawShapeGlyph (juce::Graphics& g, juce::Rectangle<float> a,
+                                GlyphKind kind, int index, juce::Colour c, float lineW)
+    {
+        const float x = a.getX(), y = a.getY(), w = a.getWidth(), h = a.getHeight();
+        const float mid = y + h * 0.5f;
+        juce::Path p;
+
+        auto sine = [&] (float cycles)
+        {
+            const int N = 48;
+            for (int i = 0; i <= N; ++i)
+            {
+                const float t = (float) i / N;
+                const float px = x + t * w;
+                const float py = mid - std::sin (t * cycles * juce::MathConstants<float>::twoPi) * h * 0.42f;
+                if (i == 0) p.startNewSubPath (px, py); else p.lineTo (px, py);
+            }
+        };
+
+        // Resolve (kind,index) to a concrete shape id: 0 saw-down,1 pulse,2 tri,
+        // 3 sine,4 saw-up,5 square,6 S&H.
+        int shape = 3;
+        if (kind == GlyphKind::OscWave)  shape = (index == 0 ? 0 : index == 1 ? 1 : index == 2 ? 2 : 3);
+        else if (kind == GlyphKind::SubWave) shape = (index == 0 ? 3 : 5);
+        else /* LfoShape */ shape = (index == 0 ? 3 : index == 1 ? 2 : index == 2 ? 4 : index == 3 ? 0 : index == 4 ? 5 : 6);
+
+        switch (shape)
+        {
+            case 0: // saw down (two teeth)
+                p.startNewSubPath (x, y); p.lineTo (x + w * 0.5f, y + h);
+                p.lineTo (x + w * 0.5f, y); p.lineTo (x + w, y + h);
+                break;
+            case 4: // saw up
+                p.startNewSubPath (x, y + h); p.lineTo (x + w * 0.5f, y);
+                p.lineTo (x + w * 0.5f, y + h); p.lineTo (x + w, y);
+                break;
+            case 1: // pulse (~40% duty)
+            case 5: // square (50%)
+            {
+                const float duty = (shape == 1) ? 0.4f : 0.5f;
+                p.startNewSubPath (x, mid - h * 0.42f);
+                p.lineTo (x + w * duty, mid - h * 0.42f);
+                p.lineTo (x + w * duty, mid + h * 0.42f);
+                p.lineTo (x + w, mid + h * 0.42f);
+                break;
+            }
+            case 2: // triangle
+                p.startNewSubPath (x, mid); p.lineTo (x + w * 0.25f, y);
+                p.lineTo (x + w * 0.75f, y + h); p.lineTo (x + w, mid);
+                break;
+            case 6: // sample & hold (random steps)
+            {
+                const float lv[5] = { 0.2f, 0.75f, 0.45f, 0.95f, 0.55f };
+                for (int i = 0; i < 5; ++i)
+                {
+                    const float px0 = x + w * (i / 5.0f), px1 = x + w * ((i + 1) / 5.0f);
+                    const float py = y + h * (1.0f - lv[i]);
+                    if (i == 0) p.startNewSubPath (px0, py); else p.lineTo (px0, py);
+                    p.lineTo (px1, py);
+                }
+                break;
+            }
+            default: sine (1.0f); break;
+        }
+
+        g.setColour (c);
+        g.strokePath (p, juce::PathStrokeType (lineW, juce::PathStrokeType::curved,
+                                               juce::PathStrokeType::rounded));
+    }
+
+    //--------------------------------------------------------------------------
+    //  Segmented waveform selector — replaces a choice combo with clickable
+    //  glyph cells. Stays in sync with the parameter (automation/presets).
+    class WaveSelector : public juce::Component
+    {
+    public:
+        WaveSelector (APVTS& s, const juce::String& paramID, GlyphKind k, juce::Colour a)
+            : kind (k), accent (a)
+        {
+            param = s.getParameter (paramID);
+            if (auto* cp = dynamic_cast<juce::AudioParameterChoice*> (param))
+                num = cp->choices.size();
+            if (param != nullptr)
+            {
+                attachment = std::make_unique<juce::ParameterAttachment> (
+                    *param, [this] (float v) { index = juce::jlimit (0, num - 1, (int) std::round (v)); repaint(); });
+                attachment->sendInitialUpdate();
+            }
+        }
+
+        void mouseDown (const juce::MouseEvent& e) override
+        {
+            if (attachment == nullptr || num <= 0) return;
+            const int cell = juce::jlimit (0, num - 1, (int) (e.position.x / (getWidth() / (float) num)));
+            attachment->setValueAsCompleteGesture ((float) cell);
+        }
+
+        void paint (juce::Graphics& g) override
+        {
+            if (num <= 0) return;
+            const float cw = getWidth() / (float) num;
+            for (int i = 0; i < num; ++i)
+            {
+                auto cell = juce::Rectangle<float> (i * cw, 0.0f, cw, (float) getHeight()).reduced (2.0f);
+                const bool sel = (i == index);
+                g.setColour (sel ? accent.withAlpha (0.16f) : col::panel2);
+                g.fillRoundedRectangle (cell, 4.0f);
+                g.setColour (sel ? accent : col::line);
+                g.drawRoundedRectangle (cell, 4.0f, sel ? 1.4f : 1.0f);
+                drawShapeGlyph (g, cell.reduced (cell.getWidth() * 0.22f, cell.getHeight() * 0.30f),
+                                kind, i, sel ? accent : col::dim, sel ? 1.9f : 1.4f);
+            }
+        }
+
+    private:
+        juce::RangedAudioParameter* param = nullptr;
+        std::unique_ptr<juce::ParameterAttachment> attachment;
+        GlyphKind kind;
+        juce::Colour accent;
+        int num = 0, index = 0;
+    };
+
+    //--------------------------------------------------------------------------
     //  Rotary knob with a name above and value box below.
     class Knob : public juce::Component
     {
@@ -137,19 +263,30 @@ namespace vosk::ui
         void paint (juce::Graphics& g) override
         {
             auto r = getLocalBounds().toFloat().reduced (1.0f);
-            g.setColour (col::panel);
+
+            // Soft drop shadow.
+            g.setColour (juce::Colours::black.withAlpha (0.30f));
+            g.fillRoundedRectangle (r.translated (0.0f, 2.0f), 9.0f);
+
+            // Body gradient.
+            g.setGradientFill (juce::ColourGradient (col::panelHi, r.getCentreX(), r.getY(),
+                                                     col::panel, r.getCentreX(), r.getBottom(), false));
             g.fillRoundedRectangle (r, 9.0f);
             g.setColour (col::line);
             g.drawRoundedRectangle (r, 9.0f, 1.0f);
 
-            // Title bar with an accent tab.
+            // Title row: accent tab, wordmark, and a hairline underglow.
             auto tb = r.removeFromTop (26.0f);
             g.setColour (accent);
-            g.fillRoundedRectangle (tb.getX() + 9.0f, tb.getY() + 8.0f, 3.0f, 10.0f, 1.5f);
-            g.setColour (accent.brighter (0.1f));
-            g.setFont (juce::Font (juce::FontOptions (12.5f)).boldened().withExtraKerningFactor (0.12f));
-            g.drawText (title, tb.withTrimmedLeft (18).toNearestInt(),
-                        juce::Justification::centredLeft);
+            g.fillRoundedRectangle (tb.getX() + 9.0f, tb.getY() + 7.0f, 3.0f, 12.0f, 1.5f);
+            g.setColour (accent.brighter (0.15f));
+            g.setFont (fontKerned (12.5f, 0.14f, true));
+            g.drawText (title, tb.withTrimmedLeft (18).toNearestInt(), juce::Justification::centredLeft);
+
+            juce::ColourGradient ug (accent.withAlpha (0.45f), r.getX() + 10.0f, 0.0f,
+                                     accent.withAlpha (0.0f), r.getRight() - 20.0f, 0.0f, false);
+            g.setGradientFill (ug);
+            g.fillRect (r.getX() + 10.0f, tb.getBottom() + 1.0f, r.getWidth() - 20.0f, 1.0f);
         }
 
         juce::Rectangle<int> content() const { return getLocalBounds().reduced (10).withTrimmedTop (28); }
@@ -181,7 +318,7 @@ namespace vosk::ui
     public:
         OscPanel (APVTS& s, int n, juce::Colour accent)
             : Panel ("OSC " + juce::String (n), accent),
-              wave    (s, ids::osc (n, ids::kWave),      "WAVE"),
+              wave    (s, ids::osc (n, ids::kWave), GlyphKind::OscWave, accent),
               phase   (s, ids::osc (n, ids::kPhaseMode), "PHASE"),
               uniPh   (s, ids::osc (n, ids::kUniPhase),  "UNI PH"),
               oct     (s, ids::osc (n, ids::kOct),       "OCT",    accent),
@@ -201,16 +338,16 @@ namespace vosk::ui
         void resized() override
         {
             auto area = content();
-            auto top = area.removeFromTop (38);
-            const int cw = top.getWidth() / 3;
-            wave.setBounds  (top.removeFromLeft (cw).reduced (3, 0));
-            phase.setBounds (top.removeFromLeft (cw).reduced (3, 0));
-            uniPh.setBounds (top.reduced (3, 0));
+            wave.setBounds (area.removeFromTop (32).reduced (2, 1));
+            auto combos = area.removeFromTop (34);
+            phase.setBounds (combos.removeFromLeft (combos.getWidth() / 2).reduced (3, 1));
+            uniPh.setBounds (combos.reduced (3, 1));
             gridLayout (area, { &oct, &semi, &fine, &level, &pw, &voices, &detune, &spread }, 4);
         }
 
     private:
-        Choice wave, phase, uniPh;
+        WaveSelector wave;
+        Choice phase, uniPh;
         Knob   oct, semi, fine, level, pw, voices, detune, spread;
     };
 
@@ -221,7 +358,7 @@ namespace vosk::ui
     public:
         SourcesPanel (APVTS& s)
             : Panel ("SUB / NOISE / SYNC", col::cyan),
-              subWave (s, ids::kSubWave, "SUB WAVE"),
+              subWave (s, ids::kSubWave, GlyphKind::SubWave, col::cyan),
               subOct  (s, ids::kSubOct,  "SUB OCT"),
               subLvl  (s, ids::kSubLevel,  "SUB",    col::cyan),
               nLvl    (s, ids::kNoiseLevel, "NOISE",  col::cyan),
@@ -239,8 +376,8 @@ namespace vosk::ui
         {
             auto area = content();
             auto combos = area.removeFromTop (32);
-            subWave.setBounds (combos.removeFromLeft (combos.getWidth() / 2).reduced (3, 0));
-            subOct.setBounds  (combos.reduced (3, 0));
+            subWave.setBounds (combos.removeFromLeft (combos.getWidth() / 2).reduced (3, 1));
+            subOct.setBounds  (combos.reduced (3, 1).withTrimmedTop (14)); // align with selector
 
             gridLayout (area.removeFromTop (area.getHeight() / 2), { &subLvl, &nLvl, &nCol }, 3);
 
@@ -250,7 +387,8 @@ namespace vosk::ui
         }
 
     private:
-        Choice subWave, subOct;
+        WaveSelector subWave;
+        Choice subOct;
         Knob   subLvl, nLvl, nCol;
         Toggle syncOn;
         Knob   syncDep, pm;
@@ -318,7 +456,7 @@ namespace vosk::ui
     public:
         LfoPanel (APVTS& s, int n, juce::Colour accent)
             : Panel ("LFO " + juce::String (n), accent),
-              shape (s, ids::lfo (n, ids::kLfoShape),    "SHAPE"),
+              shape (s, ids::lfo (n, ids::kLfoShape), GlyphKind::LfoShape, accent),
               trig  (s, ids::lfo (n, ids::kLfoTrigger),  "TRIG"),
               div   (s, ids::lfo (n, ids::kLfoDivision), "DIV"),
               sync  (s, ids::lfo (n, ids::kLfoSync), "SYNC", accent),
@@ -334,19 +472,17 @@ namespace vosk::ui
         void resized() override
         {
             auto area = content();
-            auto row1 = area.removeFromTop (32);
-            shape.setBounds (row1.removeFromLeft (row1.getWidth() / 2).reduced (3, 0));
-            trig.setBounds  (row1.reduced (3, 0));
-
-            auto row2 = area.removeFromTop (32);
-            div.setBounds  (row2.removeFromLeft (row2.getWidth() / 2).reduced (3, 0));
-            sync.setBounds (row2.reduced (3, 1).withTrimmedTop (14));
-
+            shape.setBounds (area.removeFromTop (30).reduced (2, 1));    // 6-glyph selector
+            auto row = area.removeFromTop (34);
+            trig.setBounds (row.removeFromLeft (row.getWidth() / 2).reduced (3, 1));
+            div.setBounds  (row.reduced (3, 1));
+            sync.setBounds (area.removeFromTop (26).reduced (3, 1));
             gridLayout (area, { &rate, &phase, &fade }, 3);
         }
 
     private:
-        Choice shape, trig, div;
+        WaveSelector shape;
+        Choice trig, div;
         Toggle sync;
         Knob   rate, phase, fade;
     };
@@ -376,7 +512,7 @@ namespace vosk::ui
             auto area = content();
             auto header = area.removeFromTop (16);
             g.setColour (col::dim);
-            g.setFont (juce::Font (juce::FontOptions (10.5f)).withExtraKerningFactor (0.1f));
+            g.setFont (fontKerned (10.5f, 0.12f, true));
             const int sw = (int) (area.getWidth() * 0.32f);
             g.drawText ("SOURCE", header.removeFromLeft (sw), juce::Justification::centredLeft);
             g.drawText ("DEST",   header.removeFromLeft (sw), juce::Justification::centredLeft);

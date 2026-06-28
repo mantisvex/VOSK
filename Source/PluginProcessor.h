@@ -1,0 +1,70 @@
+#pragma once
+
+#include <juce_audio_utils/juce_audio_utils.h>
+#include <vector>
+#include "Parameters.h"
+#include "VoskVoice.h"
+#include "VoskSound.h"
+
+//==============================================================================
+//  VOSK — Stage 1 processor.
+//
+//  Poly mode uses a juce::Synthesiser (8 voices, JUCE voice stealing).
+//  Mono / Legato are handled by a dedicated single voice driven directly from
+//  a last-note-priority stack, so we get true legato (no envelope retrigger on
+//  overlap) and exponential glide — neither of which JUCE's voice stealing
+//  gives us for free.
+//==============================================================================
+class VoskAudioProcessor : public juce::AudioProcessor
+{
+public:
+    VoskAudioProcessor();
+    ~VoskAudioProcessor() override = default;
+
+    void prepareToPlay (double sampleRate, int samplesPerBlock) override;
+    void releaseResources() override {}
+    bool isBusesLayoutSupported (const BusesLayout& layouts) const override;
+    void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+
+    juce::AudioProcessorEditor* createEditor() override;
+    bool hasEditor() const override { return true; }
+
+    const juce::String getName() const override { return "VOSK"; }
+    bool acceptsMidi() const override  { return true; }
+    bool producesMidi() const override { return false; }
+    bool isMidiEffect() const override { return false; }
+    double getTailLengthSeconds() const override { return 0.0; }
+
+    int getNumPrograms() override { return 1; }
+    int getCurrentProgram() override { return 0; }
+    void setCurrentProgram (int) override {}
+    const juce::String getProgramName (int) override { return {}; }
+    void changeProgramName (int, const juce::String&) override {}
+
+    void getStateInformation (juce::MemoryBlock& destData) override;
+    void setStateInformation (const void* data, int sizeInBytes) override;
+
+    juce::AudioProcessorValueTreeState apvts;
+
+private:
+    void renderMono (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi,
+                     int numSamples, bool legato);
+    void handleMonoMidi (const juce::MidiMessage& m, bool legato);
+    void panic();
+
+    static constexpr int kNumPolyVoices = 8;
+
+    vosk::ParamPtrs params;
+    VoskModInputs   modInputs;      // MIDI/host mod sources + shared LFO phase
+
+    void updateModInputs (juce::MidiBuffer& midi, int numSamples);
+
+    juce::Synthesiser synth;        // Poly
+    VoskVoice monoVoice;            // Mono / Legato
+    std::vector<int> noteStack;     // last-note-priority order
+    float monoVelocity = 0.8f;
+
+    int lastVoiceMode = -1;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VoskAudioProcessor)
+};

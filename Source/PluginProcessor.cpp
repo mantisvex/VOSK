@@ -24,6 +24,8 @@ VoskAudioProcessor::VoskAudioProcessor()
     monoVoice.setParams (&params);
     monoVoice.setModInputs (&modInputs);
 
+    fxChain.setParams (&params);
+
     noteStack.reserve (128);
 }
 
@@ -38,6 +40,9 @@ void VoskAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 
     monoVoice.prepare (sampleRate, samplesPerBlock);
     monoVoice.resetState();
+
+    fxChain.prepare (sampleRate);
+    fxChain.reset();
 
     // Per-voice oversampling adds a fixed latency; report it (all voices match).
     setLatencySamples (juce::roundToInt (monoVoice.getOversamplingLatency()));
@@ -90,6 +95,9 @@ void VoskAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     {
         renderMono (buffer, midiMessages, numSamples, /*legato*/ mode == 2);
     }
+
+    // FX chain (post-voice, pre master trim): chorus -> delay -> reverb.
+    fxChain.process (buffer, modInputs.bpm);
 
     buffer.applyGain (params.masterVol->load());
 }

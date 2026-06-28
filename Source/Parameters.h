@@ -78,6 +78,29 @@ namespace vosk::ids
     inline constexpr const char* kModSource = "source";
     inline constexpr const char* kModDest   = "dest";
     inline constexpr const char* kModAmount = "amount";
+
+    // FX chain (stage 5).
+    inline constexpr const char* kChorusOn    = "choruson";
+    inline constexpr const char* kChorusRate  = "chorusrate";
+    inline constexpr const char* kChorusDepth = "chorusdepth";
+    inline constexpr const char* kChorusMix   = "chorusmix";
+    inline constexpr const char* kChorusMode  = "chorusmode";
+
+    inline constexpr const char* kDelayOn       = "delayon";
+    inline constexpr const char* kDelaySync     = "delaysync";
+    inline constexpr const char* kDelayTime     = "delaytime";
+    inline constexpr const char* kDelayDivision = "delaydivision";
+    inline constexpr const char* kDelayFeedback = "delayfeedback";
+    inline constexpr const char* kDelayMix      = "delaymix";
+    inline constexpr const char* kDelayTone     = "delaytone";
+    inline constexpr const char* kDelayPingpong = "delaypingpong";
+
+    inline constexpr const char* kReverbOn       = "reverbon";
+    inline constexpr const char* kReverbSize     = "reverbsize";
+    inline constexpr const char* kReverbDecay    = "reverbdecay";
+    inline constexpr const char* kReverbDamping  = "reverbdamping";
+    inline constexpr const char* kReverbPredelay = "reverbpredelay";
+    inline constexpr const char* kReverbMix      = "reverbmix";
     inline constexpr const char* kMasterVol     = "mastervol";
     inline constexpr const char* kVoiceMode     = "voicemode";
     inline constexpr const char* kGlideTime     = "glidetime";
@@ -143,6 +166,27 @@ namespace vosk
         std::array<std::atomic<float>*, 8> modSource { {} };
         std::array<std::atomic<float>*, 8> modDest   { {} };
         std::array<std::atomic<float>*, 8> modAmount { {} };
+
+        // FX.
+        std::atomic<float>* chorusOn = nullptr;
+        std::atomic<float>* chorusRate = nullptr;
+        std::atomic<float>* chorusDepth = nullptr;
+        std::atomic<float>* chorusMix = nullptr;
+        std::atomic<float>* chorusMode = nullptr;
+        std::atomic<float>* delayOn = nullptr;
+        std::atomic<float>* delaySync = nullptr;
+        std::atomic<float>* delayTime = nullptr;
+        std::atomic<float>* delayDivision = nullptr;
+        std::atomic<float>* delayFeedback = nullptr;
+        std::atomic<float>* delayMix = nullptr;
+        std::atomic<float>* delayTone = nullptr;
+        std::atomic<float>* delayPingpong = nullptr;
+        std::atomic<float>* reverbOn = nullptr;
+        std::atomic<float>* reverbSize = nullptr;
+        std::atomic<float>* reverbDecay = nullptr;
+        std::atomic<float>* reverbDamping = nullptr;
+        std::atomic<float>* reverbPredelay = nullptr;
+        std::atomic<float>* reverbMix = nullptr;
         std::atomic<float>* masterVol     = nullptr;
         std::atomic<float>* voiceMode     = nullptr;
         std::atomic<float>* glideTime     = nullptr;
@@ -209,6 +253,26 @@ namespace vosk
                 modDest[i]   = s.getRawParameterValue (mod (n, kModDest));
                 modAmount[i] = s.getRawParameterValue (mod (n, kModAmount));
             }
+
+            chorusOn      = s.getRawParameterValue (kChorusOn);
+            chorusRate    = s.getRawParameterValue (kChorusRate);
+            chorusDepth   = s.getRawParameterValue (kChorusDepth);
+            chorusMix     = s.getRawParameterValue (kChorusMix);
+            chorusMode    = s.getRawParameterValue (kChorusMode);
+            delayOn       = s.getRawParameterValue (kDelayOn);
+            delaySync     = s.getRawParameterValue (kDelaySync);
+            delayTime     = s.getRawParameterValue (kDelayTime);
+            delayDivision = s.getRawParameterValue (kDelayDivision);
+            delayFeedback = s.getRawParameterValue (kDelayFeedback);
+            delayMix      = s.getRawParameterValue (kDelayMix);
+            delayTone     = s.getRawParameterValue (kDelayTone);
+            delayPingpong = s.getRawParameterValue (kDelayPingpong);
+            reverbOn      = s.getRawParameterValue (kReverbOn);
+            reverbSize    = s.getRawParameterValue (kReverbSize);
+            reverbDecay   = s.getRawParameterValue (kReverbDecay);
+            reverbDamping = s.getRawParameterValue (kReverbDamping);
+            reverbPredelay = s.getRawParameterValue (kReverbPredelay);
+            reverbMix     = s.getRawParameterValue (kReverbMix);
             masterVol      = s.getRawParameterValue (kMasterVol);
             voiceMode      = s.getRawParameterValue (kVoiceMode);
             glideTime      = s.getRawParameterValue (kGlideTime);
@@ -406,6 +470,65 @@ namespace vosk
                 pid (mod (n, kModAmount)), pre + "Amount",
                 juce::NormalisableRange<float> { -1.0f, 1.0f, 0.001f }, defAmt));
         }
+
+        // ---- FX: chorus ----
+        layout.add (std::make_unique<juce::AudioParameterBool> (
+            pid (kChorusOn), "Chorus On", false));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            pid (kChorusRate), "Chorus Rate",
+            juce::NormalisableRange<float> { 0.05f, 10.0f, 0.0f, 0.4f }, 0.8f));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            pid (kChorusDepth), "Chorus Depth",
+            juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.45f));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            pid (kChorusMix), "Chorus Mix",
+            juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.5f));
+        layout.add (std::make_unique<juce::AudioParameterChoice> (
+            pid (kChorusMode), "Chorus Mode", juce::StringArray { "I", "II" }, 0));
+
+        // ---- FX: delay ----
+        layout.add (std::make_unique<juce::AudioParameterBool> (
+            pid (kDelayOn), "Delay On", false));
+        layout.add (std::make_unique<juce::AudioParameterBool> (
+            pid (kDelaySync), "Delay Sync", true));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            pid (kDelayTime), "Delay Time",
+            juce::NormalisableRange<float> { 1.0f, 2000.0f, 0.0f, 0.4f }, 350.0f));
+        layout.add (std::make_unique<juce::AudioParameterChoice> (
+            pid (kDelayDivision), "Delay Division", modsys::lfoDivisionNames(), 8)); // 1/8.
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            pid (kDelayFeedback), "Delay Feedback",
+            juce::NormalisableRange<float> { 0.0f, 0.95f, 0.001f }, 0.40f));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            pid (kDelayMix), "Delay Mix",
+            juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.30f));
+        {
+            juce::NormalisableRange<float> toneRange { 200.0f, 18000.0f };
+            toneRange.setSkewForCentre (2500.0f);
+            layout.add (std::make_unique<juce::AudioParameterFloat> (
+                pid (kDelayTone), "Delay Tone", toneRange, 6000.0f));
+        }
+        layout.add (std::make_unique<juce::AudioParameterBool> (
+            pid (kDelayPingpong), "Delay Ping-Pong", false));
+
+        // ---- FX: reverb ----
+        layout.add (std::make_unique<juce::AudioParameterBool> (
+            pid (kReverbOn), "Reverb On", false));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            pid (kReverbSize), "Reverb Size",
+            juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.5f));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            pid (kReverbDecay), "Reverb Decay",
+            juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.5f));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            pid (kReverbDamping), "Reverb Damping",
+            juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.6f));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            pid (kReverbPredelay), "Reverb Pre-Delay",
+            juce::NormalisableRange<float> { 0.0f, 200.0f, 0.0f, 0.6f }, 20.0f));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            pid (kReverbMix), "Reverb Mix",
+            juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.25f));
 
         // ---- Global ----
         layout.add (std::make_unique<juce::AudioParameterFloat> (

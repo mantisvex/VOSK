@@ -403,6 +403,95 @@ namespace vosk::ui
     };
 
     //==========================================================================
+    //  FX: chorus.
+    class ChorusPanel : public Panel
+    {
+    public:
+        ChorusPanel (APVTS& s)
+            : Panel ("CHORUS", col::cyan),
+              on   (s, ids::kChorusOn, "ON", col::cyan),
+              mode (s, ids::kChorusMode, "MODE"),
+              rate (s, ids::kChorusRate,  "RATE",  col::cyan),
+              depth(s, ids::kChorusDepth, "DEPTH", col::cyan),
+              mix  (s, ids::kChorusMix,   "MIX",   col::cyan)
+        {
+            for (auto* c : std::initializer_list<juce::Component*> { &on, &mode, &rate, &depth, &mix })
+                addAndMakeVisible (c);
+        }
+        void resized() override
+        {
+            auto area = content();
+            auto top = area.removeFromTop (30);
+            on.setBounds (top.removeFromLeft (70).reduced (2, 1));
+            mode.setBounds (top.removeFromLeft (110).withSizeKeepingCentre (110, 26));
+            gridLayout (area, { &rate, &depth, &mix }, 3);
+        }
+    private:
+        Toggle on; Choice mode; Knob rate, depth, mix;
+    };
+
+    //==========================================================================
+    //  FX: tempo-synced delay.
+    class DelayPanel : public Panel
+    {
+    public:
+        DelayPanel (APVTS& s)
+            : Panel ("DELAY", col::green),
+              on   (s, ids::kDelayOn,   "ON",   col::green),
+              sync (s, ids::kDelaySync, "SYNC", col::green),
+              ping (s, ids::kDelayPingpong, "PING-PONG", col::green),
+              div  (s, ids::kDelayDivision, "DIV"),
+              time (s, ids::kDelayTime,     "TIME",  col::green),
+              fb   (s, ids::kDelayFeedback, "FBK",   col::green),
+              tone (s, ids::kDelayTone,     "TONE",  col::green),
+              mix  (s, ids::kDelayMix,      "MIX",   col::green)
+        {
+            for (auto* c : std::initializer_list<juce::Component*> {
+                     &on, &sync, &ping, &div, &time, &fb, &tone, &mix })
+                addAndMakeVisible (c);
+        }
+        void resized() override
+        {
+            auto area = content();
+            auto top = area.removeFromTop (30);
+            on.setBounds   (top.removeFromLeft (54).reduced (2, 1));
+            sync.setBounds (top.removeFromLeft (60).reduced (2, 1));
+            ping.setBounds (top.removeFromLeft (96).reduced (2, 1));
+            div.setBounds  (top.removeFromLeft (90).withSizeKeepingCentre (86, 26));
+            gridLayout (area, { &time, &fb, &tone, &mix }, 4);
+        }
+    private:
+        Toggle on, sync, ping; Choice div; Knob time, fb, tone, mix;
+    };
+
+    //==========================================================================
+    //  FX: dark reverb.
+    class ReverbPanel : public Panel
+    {
+    public:
+        ReverbPanel (APVTS& s)
+            : Panel ("REVERB", col::purple),
+              on    (s, ids::kReverbOn, "ON", col::purple),
+              size  (s, ids::kReverbSize,    "SIZE",   col::purple),
+              decay (s, ids::kReverbDecay,   "DECAY",  col::purple),
+              damp  (s, ids::kReverbDamping, "DAMP",   col::purple),
+              pre   (s, ids::kReverbPredelay,"PRE-DLY",col::purple),
+              mix   (s, ids::kReverbMix,     "MIX",    col::purple)
+        {
+            for (auto* c : std::initializer_list<juce::Component*> { &on, &size, &decay, &damp, &pre, &mix })
+                addAndMakeVisible (c);
+        }
+        void resized() override
+        {
+            auto area = content();
+            on.setBounds (area.removeFromTop (30).removeFromLeft (70).reduced (2, 1));
+            gridLayout (area, { &size, &decay, &damp, &pre, &mix }, 5);
+        }
+    private:
+        Toggle on; Knob size, decay, damp, pre, mix;
+    };
+
+    //==========================================================================
     //  Global bar (master, voice mode, glide, bend).
     class GlobalPanel : public Panel
     {

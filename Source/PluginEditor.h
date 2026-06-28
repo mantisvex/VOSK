@@ -26,6 +26,9 @@ private:
     vosk::ui::EnvPanel     ampEnv, filterEnv;
     vosk::ui::LfoPanel     lfo1, lfo2;
     vosk::ui::MatrixPanel  matrix;
+    vosk::ui::ChorusPanel  chorus;
+    vosk::ui::DelayPanel   delay;
+    vosk::ui::ReverbPanel  reverb;
     vosk::ui::GlobalPanel  global;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VoskAudioProcessorEditor)

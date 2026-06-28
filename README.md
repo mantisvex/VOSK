@@ -1,10 +1,9 @@
-# VOSK — Stages 1–4: Voice + Oscillator + Unison + Filter + Modulation
+# VOSK — Stages 1–5: Voice + Unison + Filter + Modulation + FX
 
-Darksynth / cyberpunk subtractive synthesizer (MantisVex). This covers **stage 1**
-(band-limited oscillators + voicing), **stage 2** (Szabo supersaw unison), **stage
-3** (pre-filter drive + two filter topologies + filter envelope) and **stage 4**
-(2 envelopes + 2 LFOs + 8-slot mod matrix). No macros, no FX, no custom GUI yet —
-those are later stages.
+Darksynth / cyberpunk subtractive synthesizer (MantisVex). Stages: **1** band-limited
+oscillators + voicing, **2** Szabo supersaw unison, **3** pre-filter drive + two filter
+topologies + filter envelope, **4** 2 envelopes + 2 LFOs + 8-slot mod matrix, **5** FX
+chain (chorus → delay → reverb). Macros are the only remaining stage.
 
 The GUI is a custom darksynth interface (`VoskLookAndFeel.h` + `GuiComponents.h`):
 charcoal panels with neon accent arcs, sectioned into 3 oscillators, sub/noise/sync,
@@ -41,6 +40,10 @@ All controls attach to the APVTS.
   fade-in), and an **8-slot fixed mod matrix** feeding the per-sample destinations
   built in stages 1–3. Ships with **Env2 → Sync Depth (+0.5)** wired by default so
   it growls out of the box; macro sources are reserved (inert) for stage 6.
+- **FX chain** (stage 5, `FxChain.h`): global post-voice, fixed order, each bypassable —
+  a Juno-style BBD **chorus** (anti-phase L/R, mode I/II), a tempo-synced stereo **delay**
+  (tone filter in the feedback path, ping-pong), and a dark **reverb** (Freeverb topology,
+  dark-biased damping, separate size/decay, pre-delay). All default OFF.
 - **Poly** (8 voices, JUCE stealing) / **Mono** / **Legato** with exponential
   **glide** and **pitch bend**.
 

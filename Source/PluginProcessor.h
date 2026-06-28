@@ -5,6 +5,7 @@
 #include "Parameters.h"
 #include "VoskVoice.h"
 #include "VoskSound.h"
+#include "FxChain.h"
 
 //==============================================================================
 //  VOSK — Stage 1 processor.
@@ -58,6 +59,8 @@ private:
     VoskModInputs   modInputs;      // MIDI/host mod sources + shared LFO phase
 
     void updateModInputs (juce::MidiBuffer& midi, int numSamples);
+
+    vosk::fx::FxChain fxChain;      // chorus -> delay -> reverb (post-voice)
 
     juce::Synthesiser synth;        // Poly
     VoskVoice monoVoice;            // Mono / Legato

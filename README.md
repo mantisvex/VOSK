@@ -43,6 +43,10 @@ local-install helper.
   fade-in), and an **8-slot fixed mod matrix** feeding the per-sample destinations
   built in stages 1–3. Ships with **Env2 → Sync Depth (+0.5)** wired by default so
   it growls out of the box; macro sources are reserved (inert) for stage 6.
+- **Output character / drive** (`Character.h`): a global post-voice saturation stage —
+  selectable **Tube / Diode / Fold / Crush** voicings with drive, post tone tilt and
+  wet/dry mix. This is where the "record" grit lives (the genre's amp-distortion vibe);
+  several factory presets enable it for instant bite.
 - **FX chain** (stage 5, `FxChain.h`): global post-voice, fixed order, each bypassable —
   a Juno-style BBD **chorus** (anti-phase L/R, mode I/II), a tempo-synced stereo **delay**
   (tone filter in the feedback path, ping-pong), and a dark **reverb** (Freeverb topology,

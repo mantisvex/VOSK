@@ -102,6 +102,13 @@ namespace vosk::ids
     inline constexpr const char* kReverbPredelay = "reverbpredelay";
     inline constexpr const char* kReverbMix      = "reverbmix";
 
+    // Output character / drive stage (post-voice, pre-FX).
+    inline constexpr const char* kCharOn    = "charon";
+    inline constexpr const char* kCharDrive = "chardrive";
+    inline constexpr const char* kCharMode  = "charmode";
+    inline constexpr const char* kCharTone  = "chartone";
+    inline constexpr const char* kCharMix   = "charmix";
+
     // Macros (stage 6). Macro1..4 are matrix sources; Hero ("ROT") is a defined
     // multi-target gesture (drive up / cutoff down / unison detune wider) AND a
     // matrix source.
@@ -199,6 +206,12 @@ namespace vosk
 
         std::array<std::atomic<float>*, 4> macro { {} };
         std::atomic<float>* hero = nullptr;
+
+        std::atomic<float>* charOn = nullptr;
+        std::atomic<float>* charDrive = nullptr;
+        std::atomic<float>* charMode = nullptr;
+        std::atomic<float>* charTone = nullptr;
+        std::atomic<float>* charMix = nullptr;
         std::atomic<float>* masterVol     = nullptr;
         std::atomic<float>* voiceMode     = nullptr;
         std::atomic<float>* glideTime     = nullptr;
@@ -291,6 +304,12 @@ namespace vosk
             macro[2] = s.getRawParameterValue (kMacro3);
             macro[3] = s.getRawParameterValue (kMacro4);
             hero     = s.getRawParameterValue (kHero);
+
+            charOn    = s.getRawParameterValue (kCharOn);
+            charDrive = s.getRawParameterValue (kCharDrive);
+            charMode  = s.getRawParameterValue (kCharMode);
+            charTone  = s.getRawParameterValue (kCharTone);
+            charMix   = s.getRawParameterValue (kCharMix);
             masterVol      = s.getRawParameterValue (kMasterVol);
             voiceMode      = s.getRawParameterValue (kVoiceMode);
             glideTime      = s.getRawParameterValue (kGlideTime);
@@ -547,6 +566,22 @@ namespace vosk
         layout.add (std::make_unique<juce::AudioParameterFloat> (
             pid (kReverbMix), "Reverb Mix",
             juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.25f));
+
+        // ---- Output character / drive ----
+        layout.add (std::make_unique<juce::AudioParameterBool> (
+            pid (kCharOn), "Character On", false));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            pid (kCharDrive), "Character Drive",
+            juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.3f));
+        layout.add (std::make_unique<juce::AudioParameterChoice> (
+            pid (kCharMode), "Character Mode",
+            juce::StringArray { "Tube", "Diode", "Fold", "Crush" }, 0));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            pid (kCharTone), "Character Tone",
+            juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.75f));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            pid (kCharMix), "Character Mix",
+            juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 1.0f));
 
         // ---- Macros ----
         for (int n = 1; n <= 4; ++n)

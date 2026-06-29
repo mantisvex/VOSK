@@ -24,6 +24,7 @@ VoskAudioProcessor::VoskAudioProcessor()
     monoVoice.setParams (&params);
     monoVoice.setModInputs (&modInputs);
 
+    characterStage.setParams (&params);
     fxChain.setParams (&params);
 
     noteStack.reserve (128);
@@ -41,6 +42,7 @@ void VoskAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     monoVoice.prepare (sampleRate, samplesPerBlock);
     monoVoice.resetState();
 
+    characterStage.prepare (sampleRate);
     fxChain.prepare (sampleRate);
     fxChain.reset();
 
@@ -98,7 +100,8 @@ void VoskAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         renderMono (buffer, midiMessages, numSamples, /*legato*/ mode == 2);
     }
 
-    // FX chain (post-voice, pre master trim): chorus -> delay -> reverb.
+    // Output character / drive (post-voice), then FX: chorus -> delay -> reverb.
+    characterStage.process (buffer);
     fxChain.process (buffer, modInputs.bpm);
 
     buffer.applyGain (params.masterVol->load());

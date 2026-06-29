@@ -29,6 +29,7 @@ private:
     vosk::ui::EnvPanel     ampEnv, filterEnv;
     vosk::ui::LfoPanel     lfo1, lfo2;
     vosk::ui::MatrixPanel  matrix;
+    vosk::ui::CharacterPanel character;
     vosk::ui::ChorusPanel  chorus;
     vosk::ui::DelayPanel   delay;
     vosk::ui::ReverbPanel  reverb;

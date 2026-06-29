@@ -20,6 +20,7 @@ VoskAudioProcessorEditor::VoskAudioProcessorEditor (VoskAudioProcessor& p)
       lfo1 (p.apvts, 1, col::purple),
       lfo2 (p.apvts, 2, col::purple),
       matrix (p.apvts),
+      character (p.apvts),
       chorus (p.apvts),
       delay (p.apvts),
       reverb (p.apvts),
@@ -31,7 +32,7 @@ VoskAudioProcessorEditor::VoskAudioProcessorEditor (VoskAudioProcessor& p)
 
     for (auto* c : std::initializer_list<juce::Component*> {
              &osc1, &osc2, &osc3, &sources, &filter, &ampEnv, &filterEnv,
-             &lfo1, &lfo2, &matrix, &chorus, &delay, &reverb, &macros, &visualiser, &global })
+             &lfo1, &lfo2, &matrix, &character, &chorus, &delay, &reverb, &macros, &visualiser, &global })
         addAndMakeVisible (c);
 
     addAndMakeVisible (presetBar);
@@ -153,12 +154,13 @@ void VoskAudioProcessorEditor::resized()
     visualiser.setBounds (scopeCol.reduced (4));
     macros.setBounds (macroCol.reduced (4));
 
-    // --- FX row (above the global bar) ---
+    // --- Output drive + FX row (above the global bar) ---
     auto fxRow = r.removeFromBottom (150);
-    const int fxW = fxRow.getWidth() / 3;
-    chorus.setBounds (fxRow.removeFromLeft (fxW).reduced (4));
-    delay.setBounds  (fxRow.removeFromLeft (fxW).reduced (4));
-    reverb.setBounds (fxRow.reduced (4));
+    const int totalW = fxRow.getWidth();
+    character.setBounds (fxRow.removeFromLeft ((int) (totalW * 0.22f)).reduced (4));
+    chorus.setBounds    (fxRow.removeFromLeft ((int) (totalW * 0.22f)).reduced (4));
+    delay.setBounds     (fxRow.removeFromLeft ((int) (totalW * 0.31f)).reduced (4));
+    reverb.setBounds    (fxRow.reduced (4));
 
     // --- LFOs + matrix row (fills the remaining middle) ---
     auto bottom = r;

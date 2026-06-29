@@ -6,6 +6,7 @@
 #include "VoskVoice.h"
 #include "VoskSound.h"
 #include "FxChain.h"
+#include "Character.h"
 #include "Scope.h"
 
 //==============================================================================
@@ -66,6 +67,7 @@ private:
 
     void updateModInputs (juce::MidiBuffer& midi, int numSamples);
 
+    vosk::CharacterStage characterStage; // output drive/saturation (post-voice, pre-FX)
     vosk::fx::FxChain fxChain;      // chorus -> delay -> reverb (post-voice)
 
     juce::Synthesiser synth;        // Poly

@@ -643,6 +643,34 @@ namespace vosk::ui
     };
 
     //==========================================================================
+    //  Output character / drive stage.
+    class CharacterPanel : public Panel
+    {
+    public:
+        CharacterPanel (APVTS& s)
+            : Panel ("DRIVE / CHARACTER", col::amber),
+              on   (s, ids::kCharOn, "ON", col::amber),
+              mode (s, ids::kCharMode, "MODE"),
+              drive(s, ids::kCharDrive, "DRIVE", col::amber),
+              tone (s, ids::kCharTone,  "TONE",  col::amber),
+              mix  (s, ids::kCharMix,   "MIX",   col::amber)
+        {
+            for (auto* c : std::initializer_list<juce::Component*> { &on, &mode, &drive, &tone, &mix })
+                addAndMakeVisible (c);
+        }
+        void resized() override
+        {
+            auto area = content();
+            auto top = area.removeFromTop (30);
+            on.setBounds (top.removeFromLeft (60).reduced (2, 1));
+            mode.setBounds (top.removeFromLeft (110).withSizeKeepingCentre (110, 26));
+            gridLayout (area, { &drive, &tone, &mix }, 3);
+        }
+    private:
+        Toggle on; Choice mode; Knob drive, tone, mix;
+    };
+
+    //==========================================================================
     //  FX: chorus.
     class ChorusPanel : public Panel
     {

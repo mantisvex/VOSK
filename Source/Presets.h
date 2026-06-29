@@ -58,7 +58,8 @@ namespace vosk
             {"filtertype",0}, {"cutoff",560.0f}, {"resonance",0.18f}, {"drive",0.55f}, {"filterenvamount",0.45f},
             {"filterattack",0.001f}, {"filterdecay",0.16f}, {"filtersustain",0.28f}, {"filterrelease",0.14f},
             {"ampattack",0.001f}, {"ampdecay",0.25f}, {"ampsustain",0.9f}, {"amprelease",0.1f}, {"ampvelsens",0.25f},
-            {"mastervol",0.62f},
+            {"charon",1}, {"charmode",1}, {"chardrive",0.4f}, {"chartone",0.7f},   // Diode bite
+            {"mastervol",0.6f},
         }});
 
         p.push_back ({ "Hydra Growl", "Bass", V {
@@ -81,7 +82,8 @@ namespace vosk
             {"filtertype",0}, {"cutoff",380.0f}, {"resonance",0.16f}, {"drive",0.5f}, {"filterenvamount",0.4f},
             {"filterattack",0.001f}, {"filterdecay",0.3f}, {"filtersustain",0.3f},
             {"ampattack",0.002f}, {"ampsustain",0.92f}, {"amprelease",0.18f},
-            {"choruson",1}, {"chorusmix",0.2f}, {"mastervol",0.6f},
+            {"charon",1}, {"charmode",0}, {"chardrive",0.35f},                     // Tube warmth
+            {"choruson",1}, {"chorusmix",0.2f}, {"mastervol",0.58f},
         }});
 
         p.push_back ({ "Doom Reese", "Bass", V {
@@ -146,7 +148,9 @@ namespace vosk
             {"subwave",1}, {"suboct",1}, {"sublevel",0.9f},
             {"filtertype",0}, {"cutoff",330.0f}, {"resonance",0.2f}, {"drive",0.55f}, {"filterenvamount",0.45f},
             {"filterdecay",0.3f}, {"filtersustain",0.15f},
-            {"ampattack",0.001f}, {"ampsustain",0.92f}, {"amprelease",0.16f}, {"mastervol",0.58f},
+            {"ampattack",0.001f}, {"ampsustain",0.92f}, {"amprelease",0.16f},
+            {"charon",1}, {"charmode",1}, {"chardrive",0.45f}, {"chartone",0.65f},  // Diode grind
+            {"mastervol",0.55f},
         }});
 
         p.push_back ({ "Night Driver", "Bass", V {
@@ -167,7 +171,9 @@ namespace vosk
             {"subwave",1}, {"sublevel",0.65f},
             {"filtertype",1}, {"cutoff",620.0f}, {"resonance",0.28f}, {"drive",0.65f}, {"filterenvamount",0.3f},
             {"filterdecay",0.2f}, {"filtersustain",0.25f},
-            {"ampattack",0.001f}, {"ampsustain",0.9f}, {"amprelease",0.1f}, {"mastervol",0.55f},
+            {"ampattack",0.001f}, {"ampsustain",0.9f}, {"amprelease",0.1f},
+            {"charon",1}, {"charmode",1}, {"chardrive",0.6f}, {"chartone",0.6f},    // heavy Diode
+            {"mastervol",0.5f},
         }});
 
         p.push_back ({ "Sub Bomb", "Bass", V {
@@ -189,8 +195,9 @@ namespace vosk
             {"filtertype",0}, {"cutoff",3200.0f}, {"resonance",0.18f}, {"drive",0.35f}, {"keytrack",0.4f}, {"filterenvamount",0.25f},
             {"filterdecay",0.4f}, {"filtersustain",0.6f},
             {"ampattack",0.005f}, {"ampsustain",0.85f}, {"amprelease",0.3f},
+            {"charon",1}, {"charmode",0}, {"chardrive",0.3f},                      // Tube glue
             {"choruson",1}, {"chorusmix",0.3f}, {"delayon",1}, {"delaymix",0.22f}, {"delaydivision",8}, {"delaypingpong",1},
-            {"reverbon",1}, {"reverbmix",0.18f}, {"mastervol",0.5f},
+            {"reverbon",1}, {"reverbmix",0.18f}, {"mastervol",0.48f},
         }});
 
         p.push_back ({ "Neon Blade", "Lead", V {
@@ -277,7 +284,8 @@ namespace vosk
             {"filtertype",0}, {"cutoff",2200.0f}, {"resonance",0.25f}, {"drive",0.45f}, {"filterenvamount",0.5f},
             {"filterattack",0.001f}, {"filterdecay",0.22f}, {"filtersustain",0.1f},
             {"ampattack",0.001f}, {"ampdecay",0.5f}, {"ampsustain",0.3f}, {"amprelease",0.25f},
-            {"reverbon",1}, {"reverbmix",0.2f}, {"delayon",1}, {"delaymix",0.18f}, {"delaypingpong",1}, {"mastervol",0.5f},
+            {"charon",1}, {"charmode",1}, {"chardrive",0.4f},                      // Diode bite
+            {"reverbon",1}, {"reverbmix",0.2f}, {"delayon",1}, {"delaymix",0.18f}, {"delaypingpong",1}, {"mastervol",0.48f},
         }});
 
         p.push_back ({ "Power Chord", "Stab", V {

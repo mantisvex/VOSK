@@ -6,9 +6,12 @@ two filter topologies + filter envelope, **4** 2 envelopes + 2 LFOs + 8-slot mod
 **5** FX chain (chorus → delay → reverb), **6** macros (4 assignable + Hero "ROT").
 
 The GUI is a custom darksynth interface (`VoskLookAndFeel.h` + `GuiComponents.h`):
-charcoal panels with neon accent arcs, sectioned into 3 oscillators, sub/noise/sync,
-filter+drive, amp/filter envelopes, 2 LFOs, the 8-slot mod matrix and a global bar.
-All controls attach to the APVTS.
+charcoal panels with neon accent arcs, visual waveform selectors, an oscilloscope +
+stereo meter, sectioned into 3 oscillators, sub/noise/sync, filter+drive, amp/filter
+envelopes, 2 LFOs, the 8-slot mod matrix, FX, macros and a global bar. All controls
+attach to the APVTS. The UI font (Rajdhani, SIL OFL) is **embedded** so it renders
+identically on any machine. See `installer/` for the installer script + a quick
+local-install helper.
 
 ## What works
 - 3 symmetric **PolyBLEP** oscillators per voice (Saw / Pulse / Triangle / Sine),

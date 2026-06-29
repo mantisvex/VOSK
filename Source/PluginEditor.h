@@ -33,6 +33,7 @@ private:
     vosk::ui::DelayPanel   delay;
     vosk::ui::ReverbPanel  reverb;
     vosk::ui::MacrosPanel  macros;
+    vosk::ui::VisualiserPanel visualiser;
     vosk::ui::GlobalPanel  global;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VoskAudioProcessorEditor)

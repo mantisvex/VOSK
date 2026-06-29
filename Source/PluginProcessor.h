@@ -6,6 +6,7 @@
 #include "VoskVoice.h"
 #include "VoskSound.h"
 #include "FxChain.h"
+#include "Scope.h"
 
 //==============================================================================
 //  VOSK — Stage 1 processor.
@@ -46,6 +47,10 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState apvts;
+
+    // Visualiser feeds (written on the audio thread, read by the editor).
+    vosk::ScopeBuffer scopeBuffer;
+    std::atomic<float> meterL { 0.0f }, meterR { 0.0f };
 
 private:
     void renderMono (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi,

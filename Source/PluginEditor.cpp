@@ -24,13 +24,14 @@ VoskAudioProcessorEditor::VoskAudioProcessorEditor (VoskAudioProcessor& p)
       delay (p.apvts),
       reverb (p.apvts),
       macros (p.apvts),
+      visualiser (p.scopeBuffer, p.meterL, p.meterR),
       global (p.apvts)
 {
     setLookAndFeel (&lnf);
 
     for (auto* c : std::initializer_list<juce::Component*> {
              &osc1, &osc2, &osc3, &sources, &filter, &ampEnv, &filterEnv,
-             &lfo1, &lfo2, &matrix, &chorus, &delay, &reverb, &macros, &global })
+             &lfo1, &lfo2, &matrix, &chorus, &delay, &reverb, &macros, &visualiser, &global })
         addAndMakeVisible (c);
 
     addAndMakeVisible (presetBar);
@@ -144,10 +145,12 @@ void VoskAudioProcessorEditor::resized()
 
     r.removeFromTop (4);
 
-    // --- Global + Macros bar at the bottom ---
+    // --- Global + Scope + Macros bar at the bottom ---
     auto globalRow = r.removeFromBottom (118);
-    auto macroCol = globalRow.removeFromRight (560);
+    auto macroCol  = globalRow.removeFromRight (520);
+    auto scopeCol  = globalRow.removeFromRight (320);
     global.setBounds (globalRow.reduced (4));
+    visualiser.setBounds (scopeCol.reduced (4));
     macros.setBounds (macroCol.reduced (4));
 
     // --- FX row (above the global bar) ---

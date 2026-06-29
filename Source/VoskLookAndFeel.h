@@ -2,6 +2,7 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <cmath>
+#include "BinaryData.h"
 
 //==============================================================================
 //  VOSK look & feel — MantisVex darksynth: industrial condensed type, neon
@@ -27,12 +28,16 @@ namespace vosk::ui
         inline const juce::Colour purple  { 0xff9b6cff };
     }
 
-    // MantisVex type system. Bahnschrift is the condensed industrial font shipped
-    // with Windows 10/11; JUCE falls back gracefully if it's unavailable.
+    // MantisVex type system — Rajdhani (SIL OFL), embedded so the UI is identical
+    // on every machine regardless of installed system fonts.
     inline juce::Font font (float h, bool bold = false)
     {
-        return juce::Font (juce::FontOptions ("Bahnschrift", h,
-                                              bold ? juce::Font::bold : juce::Font::plain));
+        static const juce::Typeface::Ptr reg = juce::Typeface::createSystemTypefaceFor (
+            BinaryData::VoskFontRegular_ttf, (size_t) BinaryData::VoskFontRegular_ttfSize);
+        static const juce::Typeface::Ptr bld = juce::Typeface::createSystemTypefaceFor (
+            BinaryData::VoskFontBold_ttf, (size_t) BinaryData::VoskFontBold_ttfSize);
+
+        return juce::Font (juce::FontOptions().withTypeface (bold ? bld : reg).withHeight (h));
     }
     inline juce::Font fontKerned (float h, float kerning, bool bold = false)
     {

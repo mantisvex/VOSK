@@ -55,6 +55,12 @@ juce_add_plugin(VOSK
     ${VOSK_LOCAL_COPY}
     VST3_CATEGORIES           Instrument Synth)
 
+# Embedded resources (the UI font, so it looks identical on every machine).
+# Rajdhani (SIL OFL 1.1) — see Resources/FONT-OFL.txt.
+juce_add_binary_data(VoskData SOURCES
+    Resources/VoskFontRegular.ttf
+    Resources/VoskFontBold.ttf)
+
 target_sources(VOSK PRIVATE
     Source/PluginProcessor.cpp
     Source/PluginEditor.cpp
@@ -68,6 +74,7 @@ target_compile_definitions(VOSK PUBLIC
 
 target_link_libraries(VOSK
     PRIVATE
+        VoskData
         juce::juce_audio_utils
         juce::juce_dsp
     PUBLIC

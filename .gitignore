@@ -2,6 +2,7 @@
 build/
 cmake-build-*/
 out/
+installer/Output/
 
 # IDE / OS
 .vs/

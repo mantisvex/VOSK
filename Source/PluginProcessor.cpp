@@ -104,6 +104,22 @@ void VoskAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     buffer.applyGain (params.masterVol->load());
 
     outputStage (buffer);
+
+    // Feed the visualiser (post everything).
+    {
+        const int n = buffer.getNumSamples();
+        const float* L = buffer.getReadPointer (0);
+        const float* R = buffer.getNumChannels() > 1 ? buffer.getReadPointer (1) : L;
+        float pkL = 0.0f, pkR = 0.0f;
+        for (int i = 0; i < n; ++i)
+        {
+            scopeBuffer.push (0.5f * (L[i] + R[i]));
+            pkL = juce::jmax (pkL, std::abs (L[i]));
+            pkR = juce::jmax (pkR, std::abs (R[i]));
+        }
+        meterL.store (pkL, std::memory_order_relaxed);
+        meterR.store (pkR, std::memory_order_relaxed);
+    }
 }
 
 //==============================================================================

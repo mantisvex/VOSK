@@ -7,6 +7,8 @@
 #include "Parameters.h"
 #include "ModMatrix.h"
 #include "PresetManager.h"
+#include "Scope.h"
+#include <atomic>
 
 //==============================================================================
 //  Reusable VOSK GUI widgets + section panels. Everything attaches to the APVTS.
@@ -754,6 +756,106 @@ namespace vosk::ui
         }
     private:
         Knob hero, m1, m2, m3, m4;
+    };
+
+    //==========================================================================
+    //  Oscilloscope + stereo output meter.
+    class VisualiserPanel : public Panel, private juce::Timer
+    {
+    public:
+        VisualiserPanel (vosk::ScopeBuffer& sb, std::atomic<float>& l, std::atomic<float>& r)
+            : Panel ("SCOPE", col::cyan), scopeBuf (sb), srcL (l), srcR (r)
+        {
+            startTimerHz (30);
+        }
+        ~VisualiserPanel() override { stopTimer(); }
+
+        void paint (juce::Graphics& g) override
+        {
+            Panel::paint (g);
+            auto area = content();
+            auto meterCol = area.removeFromRight (30);
+            area.removeFromRight (6);
+
+            // Scope screen.
+            auto sc = area.toFloat();
+            g.setColour (col::panel2);
+            g.fillRoundedRectangle (sc, 4.0f);
+            g.setColour (col::line);
+            g.drawRoundedRectangle (sc, 4.0f, 1.0f);
+            g.setColour (col::line.withAlpha (0.5f));
+            g.drawHorizontalLine ((int) sc.getCentreY(), sc.getX() + 2.0f, sc.getRight() - 2.0f);
+
+            // Trigger on a rising zero-crossing for a stable trace.
+            int start = 0;
+            for (int i = 1; i < kN / 2; ++i)
+                if (scope[i - 1] <= 0.0f && scope[i] > 0.0f) { start = i; break; }
+
+            const int disp = kN / 2;
+            juce::Path path;
+            for (int i = 0; i < disp; ++i)
+            {
+                const float s = scope[start + i];
+                const float x = sc.getX() + 3.0f + (float) i / disp * (sc.getWidth() - 6.0f);
+                const float y = sc.getCentreY() - s * sc.getHeight() * 0.46f;
+                if (i == 0) path.startNewSubPath (x, y); else path.lineTo (x, y);
+            }
+            g.setColour (accent.withAlpha (0.22f));
+            g.strokePath (path, juce::PathStrokeType (3.2f));
+            g.setColour (accent);
+            g.strokePath (path, juce::PathStrokeType (1.4f));
+
+            // Stereo meter.
+            auto mL = meterCol.removeFromLeft (meterCol.getWidth() / 2).reduced (2, 0);
+            auto mR = meterCol.reduced (2, 0);
+            drawMeter (g, mL.toFloat(), levelL, peakL);
+            drawMeter (g, mR.toFloat(), levelR, peakR);
+        }
+
+    private:
+        void timerCallback() override
+        {
+            scopeBuf.copyLatest (scope, kN);
+
+            auto step = [] (float& lvl, float& pk, float in)
+            {
+                lvl = juce::jmax (in, lvl * 0.80f);          // fast attack, slow release
+                pk  = (in > pk) ? in : juce::jmax (0.0f, pk - 0.012f);
+            };
+            step (levelL, peakL, srcL.load (std::memory_order_relaxed));
+            step (levelR, peakR, srcR.load (std::memory_order_relaxed));
+            repaint();
+        }
+
+        void drawMeter (juce::Graphics& g, juce::Rectangle<float> r, float level, float peak)
+        {
+            g.setColour (col::panel2);
+            g.fillRoundedRectangle (r, 2.0f);
+            g.setColour (col::line);
+            g.drawRoundedRectangle (r, 2.0f, 1.0f);
+
+            auto fillFor = [&] (float v)
+            {
+                const float h = juce::jlimit (0.0f, 1.0f, v) * r.getHeight();
+                return r.withTop (r.getBottom() - h);
+            };
+            juce::ColourGradient grad (col::green, 0, r.getBottom(), col::magenta, 0, r.getY(), false);
+            grad.addColour (0.7, col::amber);
+            g.setGradientFill (grad);
+            g.fillRect (fillFor (level).reduced (1.0f, 0.0f));
+
+            // Peak cap.
+            const float py = r.getBottom() - juce::jlimit (0.0f, 1.0f, peak) * r.getHeight();
+            g.setColour (peak > 0.99f ? col::magenta : col::text);
+            g.fillRect (r.getX() + 1.0f, py - 1.0f, r.getWidth() - 2.0f, 1.5f);
+        }
+
+        static constexpr int kN = 1024;
+        vosk::ScopeBuffer& scopeBuf;
+        std::atomic<float>& srcL;
+        std::atomic<float>& srcR;
+        float scope[kN] { 0.0f };
+        float levelL = 0.0f, levelR = 0.0f, peakL = 0.0f, peakR = 0.0f;
     };
 
     //==========================================================================

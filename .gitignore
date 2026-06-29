@@ -3,6 +3,7 @@ build/
 cmake-build-*/
 out/
 installer/Output/
+tools/
 
 # IDE / OS
 .vs/

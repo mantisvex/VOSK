@@ -17,8 +17,13 @@ public:
     void resized() override;
 
 private:
+    void setTab (int t);
+
     VoskAudioProcessor& proc;
     vosk::ui::LookAndFeel lnf;
+
+    juce::TextButton tabMod, tabFx;
+    int currentTab = 0; // 0 = Modulation, 1 = FX & Output
 
     vosk::PresetManager   presetManager;
     vosk::ui::PresetBar   presetBar;

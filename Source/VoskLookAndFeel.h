@@ -72,10 +72,11 @@ namespace vosk::ui
             setColour (juce::TextButton::textColourOffId,  col::dim);
         }
 
-        juce::Font getLabelFont (juce::Label&) override               { return fontKerned (12.0f, 0.06f); }
-        juce::Font getComboBoxFont (juce::ComboBox&) override         { return font (13.0f); }
-        juce::Font getPopupMenuFont() override                        { return font (14.0f); }
-        juce::Font getTextButtonFont (juce::TextButton&, int) override{ return fontKerned (11.5f, 0.08f, true); }
+        juce::Font getLabelFont (juce::Label&) override               { return fontKerned (14.0f, 0.04f); }
+        juce::Font getComboBoxFont (juce::ComboBox&) override         { return font (15.0f); }
+        juce::Font getPopupMenuFont() override                        { return font (16.0f); }
+        juce::Font getTextButtonFont (juce::TextButton&, int) override{ return fontKerned (13.0f, 0.06f, true); }
+        juce::Font getSliderPopupFont (juce::Slider&) override        { return font (15.0f); }
 
         //----------------------------------------------------------------------
         void drawRotarySlider (juce::Graphics& g, int x, int y, int w, int h,
@@ -202,8 +203,8 @@ namespace vosk::ui
 
         void positionComboBoxText (juce::ComboBox& box, juce::Label& label) override
         {
-            label.setBounds (8, 1, box.getWidth() - 22, box.getHeight() - 2);
-            label.setFont (font (13.0f));
+            label.setBounds (9, 1, box.getWidth() - 24, box.getHeight() - 2);
+            label.setFont (font (15.0f));
         }
 
         //----------------------------------------------------------------------

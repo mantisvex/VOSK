@@ -257,7 +257,7 @@ namespace vosk::ui
               juce::Colour accent)
         {
             slider.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
-            slider.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 60, 15);
+            slider.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 70, 18);
             slider.setColour (juce::Slider::rotarySliderFillColourId, accent);
             slider.setColour (juce::Slider::textBoxTextColourId, col::text);
             addAndMakeVisible (slider);
@@ -265,6 +265,7 @@ namespace vosk::ui
             label.setText (name, juce::dontSendNotification);
             label.setJustificationType (juce::Justification::centred);
             label.setColour (juce::Label::textColourId, col::dim);
+            label.setFont (fontKerned (13.0f, 0.05f, true));
             label.setInterceptsMouseClicks (false, false);
             addAndMakeVisible (label);
 
@@ -274,7 +275,7 @@ namespace vosk::ui
         void resized() override
         {
             auto r = getLocalBounds();
-            label.setBounds (r.removeFromTop (14));
+            label.setBounds (r.removeFromTop (17));
             slider.setBounds (r);
         }
 
@@ -301,6 +302,7 @@ namespace vosk::ui
                 label.setText (name, juce::dontSendNotification);
                 label.setJustificationType (juce::Justification::centredLeft);
                 label.setColour (juce::Label::textColourId, col::dim);
+                label.setFont (fontKerned (13.0f, 0.05f, true));
                 addAndMakeVisible (label);
             }
             attachment = std::make_unique<APVTS::ComboBoxAttachment> (s, paramID, box);
@@ -309,7 +311,7 @@ namespace vosk::ui
         void resized() override
         {
             auto r = getLocalBounds();
-            if (hasLabel) label.setBounds (r.removeFromTop (14));
+            if (hasLabel) label.setBounds (r.removeFromTop (16));
             box.setBounds (r.reduced (0, 1));
         }
 
@@ -384,12 +386,12 @@ namespace vosk::ui
             g.drawRoundedRectangle (r, 9.0f, 1.0f);
 
             // Title row: accent tab, wordmark, and a hairline underglow.
-            auto tb = r.removeFromTop (26.0f);
+            auto tb = r.removeFromTop (30.0f);
             g.setColour (accent);
-            g.fillRoundedRectangle (tb.getX() + 9.0f, tb.getY() + 7.0f, 3.0f, 12.0f, 1.5f);
+            g.fillRoundedRectangle (tb.getX() + 10.0f, tb.getY() + 8.0f, 3.5f, 14.0f, 1.5f);
             g.setColour (accent.brighter (0.15f));
-            g.setFont (fontKerned (12.5f, 0.14f, true));
-            g.drawText (title, tb.withTrimmedLeft (18).toNearestInt(), juce::Justification::centredLeft);
+            g.setFont (fontKerned (15.0f, 0.12f, true));
+            g.drawText (title, tb.withTrimmedLeft (20).toNearestInt(), juce::Justification::centredLeft);
 
             juce::ColourGradient ug (accent.withAlpha (0.45f), r.getX() + 10.0f, 0.0f,
                                      accent.withAlpha (0.0f), r.getRight() - 20.0f, 0.0f, false);
@@ -397,7 +399,7 @@ namespace vosk::ui
             g.fillRect (r.getX() + 10.0f, tb.getBottom() + 1.0f, r.getWidth() - 20.0f, 1.0f);
         }
 
-        juce::Rectangle<int> content() const { return getLocalBounds().reduced (10).withTrimmedTop (28); }
+        juce::Rectangle<int> content() const { return getLocalBounds().reduced (11).withTrimmedTop (30); }
 
         juce::String title;
         juce::Colour accent;
@@ -620,7 +622,7 @@ namespace vosk::ui
             auto area = content();
             auto header = area.removeFromTop (16);
             g.setColour (col::dim);
-            g.setFont (fontKerned (10.5f, 0.12f, true));
+            g.setFont (fontKerned (12.0f, 0.1f, true));
             const int sw = (int) (area.getWidth() * 0.32f);
             g.drawText ("SOURCE", header.removeFromLeft (sw), juce::Justification::centredLeft);
             g.drawText ("DEST",   header.removeFromLeft (sw), juce::Justification::centredLeft);

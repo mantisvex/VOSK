@@ -47,6 +47,10 @@ local-install helper.
   selectable **Tube / Diode / Fold / Crush** voicings with drive, post tone tilt and
   wet/dry mix. This is where the "record" grit lives (the genre's amp-distortion vibe);
   several factory presets enable it for instant bite.
+- **Tape / VHS** (`Tape.h`): final-output nostalgia color — wow & flutter pitch warble,
+  tape saturation, vintage HF rolloff and hiss. The synthwave tape grain.
+- **MUTATE** (`PresetManager::randomise`): a genre-constrained randomiser in the preset
+  bar (magenta, the signature gesture) that always lands on usable darksynth patches.
 - **FX chain** (stage 5, `FxChain.h`): global post-voice, fixed order, each bypassable —
   a Juno-style BBD **chorus** (anti-phase L/R, mode I/II), a tempo-synced stereo **delay**
   (tone filter in the feedback path, ping-pong), and a dark **reverb** (Freeverb topology,

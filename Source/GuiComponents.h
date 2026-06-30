@@ -165,13 +165,16 @@ namespace vosk::ui
 
             prev.setButtonText ("<");
             next.setButtonText (">");
+            mutate.setButtonText ("MUTATE");
             save.setButtonText ("SAVE");
             init.setButtonText ("INIT");
+            mutate.setColour (juce::TextButton::textColourOffId, col::magenta); // signature gesture
             prev.onClick = [this] { manager.step (-1, cat.getText()); };
             next.onClick = [this] { manager.step (+1, cat.getText()); };
+            mutate.onClick = [this] { manager.randomise(); };
             init.onClick = [this] { manager.loadInit(); };
             save.onClick = [this] { promptSave(); };
-            for (auto* b : std::initializer_list<juce::Button*> { &prev, &next, &save, &init })
+            for (auto* b : std::initializer_list<juce::Button*> { &prev, &next, &mutate, &save, &init })
                 addAndMakeVisible (b);
 
             manager.addChangeListener (this);
@@ -183,13 +186,14 @@ namespace vosk::ui
         void resized() override
         {
             auto r = getLocalBounds();
-            prev.setBounds   (r.removeFromLeft (26).reduced (1, 2));
-            cat.setBounds    (r.removeFromLeft (118).reduced (2, 2));
-            preset.setBounds (r.removeFromLeft (220).reduced (2, 2));
-            next.setBounds   (r.removeFromLeft (26).reduced (1, 2));
+            prev.setBounds   (r.removeFromLeft (24).reduced (1, 2));
+            cat.setBounds    (r.removeFromLeft (104).reduced (2, 2));
+            preset.setBounds (r.removeFromLeft (190).reduced (2, 2));
+            next.setBounds   (r.removeFromLeft (24).reduced (1, 2));
             r.removeFromLeft (8);
-            save.setBounds   (r.removeFromLeft (64).reduced (2, 2));
-            init.setBounds   (r.removeFromLeft (58).reduced (2, 2));
+            mutate.setBounds (r.removeFromLeft (70).reduced (2, 2));
+            save.setBounds   (r.removeFromLeft (58).reduced (2, 2));
+            init.setBounds   (r.removeFromLeft (52).reduced (2, 2));
         }
 
     private:
@@ -240,7 +244,7 @@ namespace vosk::ui
 
         vosk::PresetManager& manager;
         juce::ComboBox cat, preset;
-        juce::TextButton prev, next, save, init;
+        juce::TextButton prev, next, mutate, save, init;
         bool updating = false;
     };
 
@@ -668,6 +672,32 @@ namespace vosk::ui
         }
     private:
         Toggle on; Choice mode; Knob drive, tone, mix;
+    };
+
+    //==========================================================================
+    //  Tape / VHS final color.
+    class TapePanel : public Panel
+    {
+    public:
+        TapePanel (APVTS& s)
+            : Panel ("TAPE / VHS", col::green),
+              on   (s, ids::kTapeOn, "ON", col::green),
+              wow  (s, ids::kTapeWow,  "WOW",  col::green),
+              sat  (s, ids::kTapeSat,  "SAT",  col::green),
+              hiss (s, ids::kTapeHiss, "HISS", col::green),
+              tone (s, ids::kTapeTone, "TONE", col::green)
+        {
+            for (auto* c : std::initializer_list<juce::Component*> { &on, &wow, &sat, &hiss, &tone })
+                addAndMakeVisible (c);
+        }
+        void resized() override
+        {
+            auto area = content();
+            on.setBounds (area.removeFromTop (28).removeFromLeft (62).reduced (2, 1));
+            gridLayout (area, { &wow, &sat, &hiss, &tone }, 4);
+        }
+    private:
+        Toggle on; Knob wow, sat, hiss, tone;
     };
 
     //==========================================================================

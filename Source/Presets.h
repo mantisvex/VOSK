@@ -161,7 +161,9 @@ namespace vosk
             {"filtertype",0}, {"cutoff",500.0f}, {"resonance",0.18f}, {"drive",0.4f}, {"filterenvamount",0.25f},
             {"filterdecay",0.5f}, {"filtersustain",0.5f},
             {"ampattack",0.004f}, {"ampsustain",0.95f}, {"amprelease",0.28f},
-            {"choruson",1}, {"chorusmix",0.28f}, {"mastervol",0.58f},
+            {"choruson",1}, {"chorusmix",0.28f},
+            {"tapeon",1}, {"tapewow",0.3f}, {"tapesat",0.3f}, {"tapehiss",0.12f}, {"tapetone",0.6f},
+            {"mastervol",0.58f},
         }});
 
         p.push_back ({ "Crusher", "Bass", V {
@@ -228,7 +230,9 @@ namespace vosk
             {"pmamount",0.45f},
             {"filtertype",0}, {"cutoff",4500.0f}, {"resonance",0.12f}, {"keytrack",0.5f}, {"filterenvamount",0.2f},
             {"ampattack",0.02f}, {"ampsustain",0.8f}, {"amprelease",0.4f},
-            {"choruson",1}, {"chorusmix",0.35f}, {"reverbon",1}, {"reverbmix",0.3f}, {"reverbsize",0.7f}, {"mastervol",0.55f},
+            {"choruson",1}, {"chorusmix",0.35f}, {"reverbon",1}, {"reverbmix",0.3f}, {"reverbsize",0.7f},
+            {"tapeon",1}, {"tapewow",0.4f}, {"tapesat",0.25f}, {"tapehiss",0.18f}, {"tapetone",0.55f},
+            {"mastervol",0.55f},
         }});
 
         p.push_back ({ "Hunter", "Lead", V {

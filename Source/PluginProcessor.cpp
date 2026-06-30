@@ -26,6 +26,7 @@ VoskAudioProcessor::VoskAudioProcessor()
 
     characterStage.setParams (&params);
     fxChain.setParams (&params);
+    tapeStage.setParams (&params);
 
     noteStack.reserve (128);
 }
@@ -45,6 +46,7 @@ void VoskAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     characterStage.prepare (sampleRate);
     fxChain.prepare (sampleRate);
     fxChain.reset();
+    tapeStage.prepare (sampleRate);
 
     dcX[0] = dcX[1] = dcY[0] = dcY[1] = 0.0f;
 
@@ -100,9 +102,10 @@ void VoskAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         renderMono (buffer, midiMessages, numSamples, /*legato*/ mode == 2);
     }
 
-    // Output character / drive (post-voice), then FX: chorus -> delay -> reverb.
+    // Output character / drive (post-voice), then FX, then tape/VHS final color.
     characterStage.process (buffer);
     fxChain.process (buffer, modInputs.bpm);
+    tapeStage.process (buffer);
 
     buffer.applyGain (params.masterVol->load());
 

@@ -7,6 +7,7 @@
 #include "VoskSound.h"
 #include "FxChain.h"
 #include "Character.h"
+#include "Tape.h"
 #include "Scope.h"
 
 //==============================================================================
@@ -69,6 +70,7 @@ private:
 
     vosk::CharacterStage characterStage; // output drive/saturation (post-voice, pre-FX)
     vosk::fx::FxChain fxChain;      // chorus -> delay -> reverb (post-voice)
+    vosk::TapeStage tapeStage;     // tape/VHS final color (post-FX)
 
     juce::Synthesiser synth;        // Poly
     VoskVoice monoVoice;            // Mono / Legato

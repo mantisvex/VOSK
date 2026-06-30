@@ -24,6 +24,7 @@ VoskAudioProcessorEditor::VoskAudioProcessorEditor (VoskAudioProcessor& p)
       chorus (p.apvts),
       delay (p.apvts),
       reverb (p.apvts),
+      tape (p.apvts),
       macros (p.apvts),
       visualiser (p.scopeBuffer, p.meterL, p.meterR),
       global (p.apvts)
@@ -32,7 +33,7 @@ VoskAudioProcessorEditor::VoskAudioProcessorEditor (VoskAudioProcessor& p)
 
     for (auto* c : std::initializer_list<juce::Component*> {
              &osc1, &osc2, &osc3, &sources, &filter, &ampEnv, &filterEnv,
-             &lfo1, &lfo2, &matrix, &character, &chorus, &delay, &reverb, &macros, &visualiser, &global })
+             &lfo1, &lfo2, &matrix, &character, &chorus, &delay, &reverb, &tape, &macros, &visualiser, &global })
         addAndMakeVisible (c);
 
     addAndMakeVisible (presetBar);
@@ -118,8 +119,8 @@ void VoskAudioProcessorEditor::resized()
     // Preset browser bar in the header (right side).
     {
         auto header = getLocalBounds().reduced (14).removeFromTop (52);
-        auto pb = header.removeFromRight (540);
-        presetBar.setBounds (pb.withSizeKeepingCentre (540, 30).translated (0, 4));
+        auto pb = header.removeFromRight (600);
+        presetBar.setBounds (pb.withSizeKeepingCentre (600, 30).translated (0, 4));
     }
 
     auto r = getLocalBounds().reduced (12);
@@ -154,13 +155,15 @@ void VoskAudioProcessorEditor::resized()
     visualiser.setBounds (scopeCol.reduced (4));
     macros.setBounds (macroCol.reduced (4));
 
-    // --- Output drive + FX row (above the global bar) ---
+    // --- Output drive + FX row (above the global bar): character / chorus /
+    //     delay / reverb / tape ---
     auto fxRow = r.removeFromBottom (150);
     const int totalW = fxRow.getWidth();
-    character.setBounds (fxRow.removeFromLeft ((int) (totalW * 0.22f)).reduced (4));
-    chorus.setBounds    (fxRow.removeFromLeft ((int) (totalW * 0.22f)).reduced (4));
-    delay.setBounds     (fxRow.removeFromLeft ((int) (totalW * 0.31f)).reduced (4));
-    reverb.setBounds    (fxRow.reduced (4));
+    character.setBounds (fxRow.removeFromLeft ((int) (totalW * 0.19f)).reduced (4));
+    chorus.setBounds    (fxRow.removeFromLeft ((int) (totalW * 0.19f)).reduced (4));
+    delay.setBounds     (fxRow.removeFromLeft ((int) (totalW * 0.24f)).reduced (4));
+    reverb.setBounds    (fxRow.removeFromLeft ((int) (totalW * 0.20f)).reduced (4));
+    tape.setBounds      (fxRow.reduced (4));
 
     // --- LFOs + matrix row (fills the remaining middle) ---
     auto bottom = r;

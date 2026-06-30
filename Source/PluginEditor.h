@@ -33,6 +33,7 @@ private:
     vosk::ui::ChorusPanel  chorus;
     vosk::ui::DelayPanel   delay;
     vosk::ui::ReverbPanel  reverb;
+    vosk::ui::TapePanel    tape;
     vosk::ui::MacrosPanel  macros;
     vosk::ui::VisualiserPanel visualiser;
     vosk::ui::GlobalPanel  global;

@@ -76,6 +76,73 @@ namespace vosk
             sendChangeMessage();
         }
 
+        // Genre-constrained randomiser ("MUTATE"): always lands on usable
+        // darksynth territory (saws/pulses, sub weight, low-mid resonant filter,
+        // drive + character on), never chaos. Output safety covers any extremes.
+        void randomise()
+        {
+            resetToDefaults();
+            juce::Random r;
+            auto set = [&] (const char* id, float v) { if (auto* p = apvts.getParameter (id)) p->setValueNotifyingHost (p->convertTo0to1 (v)); };
+            auto rf  = [&] (float lo, float hi) { return lo + r.nextFloat() * (hi - lo); };
+            auto ri  = [&] (int lo, int hi) { return (float) (lo + r.nextInt (hi - lo + 1)); };
+            const bool bass = r.nextFloat() < 0.6f;
+
+            set ("voicemode", bass ? ri (1, 2) : 0.0f);
+            if (bass) set ("glidetime", rf (0.0f, 0.06f));
+
+            set ("osc1wave", r.nextFloat() < 0.7f ? 0.0f : 1.0f);
+            set ("osc1level", rf (0.8f, 1.0f));
+            set ("osc1univoices", ri (1, 5));
+            set ("osc1unidetune", rf (0.05f, 0.32f));
+            set ("osc1unispread", rf (0.0f, 0.6f));
+            set ("osc1uniphase", bass ? 1.0f : 0.0f);
+
+            if (r.nextFloat() < 0.7f)
+            {
+                set ("osc2wave", (float) r.nextInt (2));
+                set ("osc2level", rf (0.3f, 0.8f));
+                set ("osc2semi", r.nextInt (2) ? 7.0f : 0.0f);
+                set ("osc2fine", rf (-9.0f, 9.0f));
+            }
+
+            set ("subwave", (float) r.nextInt (2));
+            set ("suboct", (float) r.nextInt (2));
+            set ("sublevel", bass ? rf (0.5f, 0.95f) : rf (0.0f, 0.4f));
+
+            if (r.nextFloat() < 0.4f) { set ("syncon", 1.0f); set ("syncdepth", rf (0.0f, 8.0f)); }
+
+            set ("filtertype", (float) r.nextInt (2));
+            set ("cutoff", bass ? rf (250.0f, 900.0f) : rf (1200.0f, 5000.0f));
+            set ("resonance", rf (0.1f, 0.4f));
+            set ("drive", rf (0.3f, 0.65f));
+            set ("keytrack", bass ? 0.0f : rf (0.3f, 0.6f));
+            set ("filterenvamount", rf (0.25f, 0.65f));
+            set ("filterattack", 0.001f);
+            set ("filterdecay", rf (0.12f, 0.4f));
+            set ("filtersustain", rf (0.1f, 0.4f));
+
+            set ("ampattack", bass ? 0.001f : rf (0.001f, 0.02f));
+            set ("ampsustain", rf (0.8f, 0.95f));
+            set ("amprelease", rf (0.1f, 0.3f));
+
+            set ("charon", 1.0f);
+            set ("charmode", (float) r.nextInt (4));
+            set ("chardrive", rf (0.2f, 0.55f));
+            set ("chartone", rf (0.5f, 0.85f));
+
+            if (r.nextFloat() < 0.5f) { set ("choruson", 1.0f); set ("chorusmix", rf (0.2f, 0.35f)); }
+            if (r.nextFloat() < 0.5f) { set ("delayon", 1.0f); set ("delaymix", rf (0.15f, 0.3f)); set ("delaypingpong", (float) r.nextInt (2)); set ("delaydivision", r.nextInt (2) ? 8.0f : 9.0f); }
+            if (r.nextFloat() < 0.6f) { set ("reverbon", 1.0f); set ("reverbmix", rf (0.12f, 0.28f)); set ("reverbsize", rf (0.4f, 0.7f)); }
+            if (r.nextFloat() < 0.5f) { set ("tapeon", 1.0f); set ("tapewow", rf (0.1f, 0.5f)); set ("tapesat", rf (0.2f, 0.5f)); set ("tapehiss", rf (0.0f, 0.3f)); set ("tapetone", rf (0.45f, 0.8f)); }
+
+            set ("mastervol", 0.55f);
+
+            currentName = "Mutation";
+            currentCategory = "All";
+            sendChangeMessage();
+        }
+
         //-- Saving (user) ----------------------------------------------------
         void saveUser (const juce::String& name)
         {

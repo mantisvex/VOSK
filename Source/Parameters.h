@@ -102,6 +102,13 @@ namespace vosk::ids
     inline constexpr const char* kReverbPredelay = "reverbpredelay";
     inline constexpr const char* kReverbMix      = "reverbmix";
 
+    // Tape / VHS stage (final output color).
+    inline constexpr const char* kTapeOn   = "tapeon";
+    inline constexpr const char* kTapeWow  = "tapewow";
+    inline constexpr const char* kTapeSat  = "tapesat";
+    inline constexpr const char* kTapeHiss = "tapehiss";
+    inline constexpr const char* kTapeTone = "tapetone";
+
     // Output character / drive stage (post-voice, pre-FX).
     inline constexpr const char* kCharOn    = "charon";
     inline constexpr const char* kCharDrive = "chardrive";
@@ -212,6 +219,11 @@ namespace vosk
         std::atomic<float>* charMode = nullptr;
         std::atomic<float>* charTone = nullptr;
         std::atomic<float>* charMix = nullptr;
+        std::atomic<float>* tapeOn = nullptr;
+        std::atomic<float>* tapeWow = nullptr;
+        std::atomic<float>* tapeSat = nullptr;
+        std::atomic<float>* tapeHiss = nullptr;
+        std::atomic<float>* tapeTone = nullptr;
         std::atomic<float>* masterVol     = nullptr;
         std::atomic<float>* voiceMode     = nullptr;
         std::atomic<float>* glideTime     = nullptr;
@@ -310,6 +322,11 @@ namespace vosk
             charMode  = s.getRawParameterValue (kCharMode);
             charTone  = s.getRawParameterValue (kCharTone);
             charMix   = s.getRawParameterValue (kCharMix);
+            tapeOn    = s.getRawParameterValue (kTapeOn);
+            tapeWow   = s.getRawParameterValue (kTapeWow);
+            tapeSat   = s.getRawParameterValue (kTapeSat);
+            tapeHiss  = s.getRawParameterValue (kTapeHiss);
+            tapeTone  = s.getRawParameterValue (kTapeTone);
             masterVol      = s.getRawParameterValue (kMasterVol);
             voiceMode      = s.getRawParameterValue (kVoiceMode);
             glideTime      = s.getRawParameterValue (kGlideTime);
@@ -582,6 +599,18 @@ namespace vosk
         layout.add (std::make_unique<juce::AudioParameterFloat> (
             pid (kCharMix), "Character Mix",
             juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 1.0f));
+
+        // ---- Tape / VHS ----
+        layout.add (std::make_unique<juce::AudioParameterBool> (
+            pid (kTapeOn), "Tape On", false));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            pid (kTapeWow), "Tape Wow", juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.3f));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            pid (kTapeSat), "Tape Sat", juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.3f));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            pid (kTapeHiss), "Tape Hiss", juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.15f));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            pid (kTapeTone), "Tape Tone", juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.6f));
 
         // ---- Macros ----
         for (int n = 1; n <= 4; ++n)

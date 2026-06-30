@@ -19,6 +19,14 @@ namespace vosk::ui
     using APVTS = juce::AudioProcessorValueTreeState;
 
     //--------------------------------------------------------------------------
+    //  Slider that repaints on hover so the look & feel can draw a hover glow.
+    struct GlowSlider : juce::Slider
+    {
+        void mouseEnter (const juce::MouseEvent& e) override { juce::Slider::mouseEnter (e); repaint(); }
+        void mouseExit  (const juce::MouseEvent& e) override { juce::Slider::mouseExit  (e); repaint(); }
+    };
+
+    //--------------------------------------------------------------------------
     //  Waveform / shape glyphs drawn into a rect (one cycle, centred).
     enum class GlyphKind { OscWave, SubWave, LfoShape };
 
@@ -297,7 +305,7 @@ namespace vosk::ui
             slider.setPopupDisplayEnabled (true, true, getTopLevelComponent());
         }
 
-        juce::Slider slider;
+        GlowSlider   slider;
         juce::Label  label;
         std::unique_ptr<APVTS::SliderAttachment> attachment;
     };
@@ -377,7 +385,7 @@ namespace vosk::ui
         }
         void resized() override { slider.setBounds (getLocalBounds()); }
 
-        juce::Slider slider;
+        GlowSlider slider;
         std::unique_ptr<APVTS::SliderAttachment> attachment;
     };
 

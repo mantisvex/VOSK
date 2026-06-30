@@ -5,7 +5,9 @@
 #include "GuiComponents.h"
 
 //==============================================================================
-//  VOSK editor — custom darksynth GUI (stages 1–4 controls).
+//  VOSK editor — custom darksynth GUI. All content lives on a fixed-size
+//  "canvas" that is scaled by an AffineTransform for the UI-scale control, so
+//  the whole interface (including fonts/graphics) scales crisply.
 //==============================================================================
 class VoskAudioProcessorEditor : public juce::AudioProcessorEditor
 {
@@ -17,16 +19,35 @@ public:
     void resized() override;
 
 private:
+    // Lightweight forwarding container that gets the scale transform.
+    struct Canvas : juce::Component
+    {
+        std::function<void (juce::Graphics&)> onPaint;
+        void paint (juce::Graphics& g) override { if (onPaint) onPaint (g); }
+    };
+
+    static constexpr int kDesignW = 1480;
+    static constexpr int kDesignH = 988;
+
+    void paintCanvas (juce::Graphics&);
+    void layoutCanvas();
     void setTab (int t);
+    void setScale (float s);
 
     VoskAudioProcessor& proc;
     vosk::ui::LookAndFeel lnf;
 
-    juce::TextButton tabMod, tabFx;
-    int currentTab = 0; // 0 = Modulation, 1 = FX & Output
+    Canvas canvas;
+    float uiScale = 1.0f;
+    juce::ComboBox scaleBox;
+    juce::MidiKeyboardComponent keyboard;
+    juce::TooltipWindow tooltips { nullptr, 600 };
 
     vosk::PresetManager   presetManager;
     vosk::ui::PresetBar   presetBar;
+
+    juce::TextButton tabMod, tabFx;
+    int currentTab = 0;
 
     vosk::ui::OscPanel     osc1, osc2, osc3;
     vosk::ui::SourcesPanel sources;

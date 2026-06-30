@@ -9,9 +9,13 @@ The GUI is a custom darksynth interface (`VoskLookAndFeel.h` + `GuiComponents.h`
 charcoal panels with neon accent arcs, visual waveform selectors, an oscilloscope +
 stereo meter, sectioned into 3 oscillators, sub/noise/sync, filter+drive, amp/filter
 envelopes, 2 LFOs, the 8-slot mod matrix, FX, macros and a global bar. All controls
-attach to the APVTS. The UI font (Rajdhani, SIL OFL) is **embedded** so it renders
-identically on any machine. See `installer/` for the installer script + a quick
-local-install helper.
+attach to the APVTS. Live visual feedback throughout: oscilloscope + stereo meters,
+ADSR envelope curves, a filter response graph, LFO phase playheads and mod-matrix
+routing highlights. Lower section is **tabbed** (Modulation / FX & Output). A **UI
+scale** control (75–150%, via an AffineTransform on a fixed-size canvas), an
+**on-screen MIDI keyboard**, knob **hover glow** + value popups. The UI font
+(Rajdhani, SIL OFL) is **embedded** so it renders identically on any machine. See
+`installer/` for the installer script + a quick local-install helper.
 
 ## What works
 - 3 symmetric **PolyBLEP** oscillators per voice (Saw / Pulse / Triangle / Sine),

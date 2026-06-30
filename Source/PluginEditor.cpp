@@ -6,6 +6,7 @@ using namespace vosk::ui;
 VoskAudioProcessorEditor::VoskAudioProcessorEditor (VoskAudioProcessor& p)
     : juce::AudioProcessorEditor (&p),
       proc (p),
+      keyboard (p.keyboardState, juce::MidiKeyboardComponent::horizontalKeyboard),
       presetManager (p.apvts),
       presetBar (presetManager),
       osc1 (p.apvts, 1, col::magenta),
@@ -31,29 +32,68 @@ VoskAudioProcessorEditor::VoskAudioProcessorEditor (VoskAudioProcessor& p)
 {
     setLookAndFeel (&lnf);
 
+    addAndMakeVisible (canvas);
+    canvas.onPaint = [this] (juce::Graphics& g) { paintCanvas (g); };
+    canvas.setInterceptsMouseClicks (false, true); // pass-through; children handle clicks
+
+    // Everything lives on the canvas so it scales together.
     for (auto* c : std::initializer_list<juce::Component*> {
              &osc1, &osc2, &osc3, &sources, &filter, &ampEnv, &filterEnv,
-             &lfo1, &lfo2, &matrix, &character, &chorus, &delay, &reverb, &tape, &macros, &visualiser, &global })
-        addAndMakeVisible (c);
+             &lfo1, &lfo2, &matrix, &character, &chorus, &delay, &reverb, &tape,
+             &macros, &visualiser, &global, &presetBar, &tabMod, &tabFx })
+        canvas.addAndMakeVisible (c);
 
-    addAndMakeVisible (presetBar);
+    // Dark keyboard.
+    keyboard.setColour (juce::MidiKeyboardComponent::whiteNoteColourId, col::panelHi.brighter (0.25f));
+    keyboard.setColour (juce::MidiKeyboardComponent::blackNoteColourId, col::bgDeep);
+    keyboard.setColour (juce::MidiKeyboardComponent::keySeparatorLineColourId, col::line);
+    keyboard.setColour (juce::MidiKeyboardComponent::shadowColourId, juce::Colours::black.withAlpha (0.4f));
+    keyboard.setColour (juce::MidiKeyboardComponent::mouseOverKeyOverlayColourId, col::magenta.withAlpha (0.3f));
+    keyboard.setColour (juce::MidiKeyboardComponent::keyDownOverlayColourId, col::magenta.withAlpha (0.6f));
+    keyboard.setColour (juce::MidiKeyboardComponent::upDownButtonBackgroundColourId, col::panel2);
+    keyboard.setColour (juce::MidiKeyboardComponent::upDownButtonArrowColourId, col::dim);
+    keyboard.setKeyWidth (22.0f);
+    keyboard.setLowestVisibleKey (24);
+    canvas.addAndMakeVisible (keyboard);
 
-    // Lower-section tabs (Modulation vs FX & Output) so panels can breathe.
+    // Lower-section tabs (Modulation vs FX & Output).
     tabMod.setButtonText ("MODULATION");
     tabFx.setButtonText ("FX & OUTPUT");
     for (auto* b : { &tabMod, &tabFx })
     {
         b->setClickingTogglesState (true);
         b->setColour (juce::TextButton::buttonOnColourId, col::cyan);
-        addAndMakeVisible (b);
     }
     tabMod.onClick = [this] { setTab (0); };
     tabFx.onClick  = [this] { setTab (1); };
 
-    setResizable (true, true);
-    setResizeLimits (1200, 840, 2200, 1500);
-    setSize (1480, 956);
+    // UI scale control.
+    scaleBox.addItemList ({ "75%", "100%", "125%", "150%" }, 1);
+    scaleBox.setSelectedItemIndex (1, juce::dontSendNotification);
+    scaleBox.setTooltip ("UI scale");
+    scaleBox.onChange = [this]
+    {
+        const float s[] { 0.75f, 1.0f, 1.25f, 1.5f };
+        setScale (s[juce::jlimit (0, 3, scaleBox.getSelectedItemIndex())]);
+    };
+    canvas.addAndMakeVisible (scaleBox);
+
+    layoutCanvas();
     setTab (0);
+
+    setResizable (false, false);
+    setScale (1.0f);
+}
+
+VoskAudioProcessorEditor::~VoskAudioProcessorEditor()
+{
+    setLookAndFeel (nullptr);
+}
+
+void VoskAudioProcessorEditor::setScale (float s)
+{
+    uiScale = s;
+    setSize (juce::roundToInt (kDesignW * s), juce::roundToInt (kDesignH * s));
 }
 
 void VoskAudioProcessorEditor::setTab (int t)
@@ -66,29 +106,34 @@ void VoskAudioProcessorEditor::setTab (int t)
     lfo1.setVisible (mod); lfo2.setVisible (mod); matrix.setVisible (mod);
     character.setVisible (! mod); chorus.setVisible (! mod); delay.setVisible (! mod);
     reverb.setVisible (! mod); tape.setVisible (! mod);
-    repaint();
-}
-
-VoskAudioProcessorEditor::~VoskAudioProcessorEditor()
-{
-    setLookAndFeel (nullptr);
+    canvas.repaint();
 }
 
 void VoskAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    const auto W = (float) getWidth();
-    const auto H = (float) getHeight();
+    g.fillAll (col::bgDeep);
+}
 
-    // Base gradient.
+void VoskAudioProcessorEditor::resized()
+{
+    canvas.setTransform ({});
+    canvas.setBounds (0, 0, kDesignW, kDesignH);
+    canvas.setTransform (juce::AffineTransform::scale (uiScale));
+}
+
+//==============================================================================
+void VoskAudioProcessorEditor::paintCanvas (juce::Graphics& g)
+{
+    const float W = (float) kDesignW;
+    const float H = (float) kDesignH;
+
     g.setGradientFill (juce::ColourGradient (col::bg, 0.0f, 0.0f, col::bgDeep, 0.0f, H, false));
     g.fillAll();
 
-    // Faint tech grid.
     g.setColour (juce::Colours::white.withAlpha (0.012f));
     for (float x = 0.0f; x < W; x += 26.0f) g.drawVerticalLine ((int) x, 0.0f, H);
     for (float y = 0.0f; y < H; y += 26.0f) g.drawHorizontalLine ((int) y, 0.0f, W);
 
-    // Magenta glow behind the header + radial vignette.
     g.setGradientFill (juce::ColourGradient (col::magenta.withAlpha (0.10f), 90.0f, 30.0f,
                                              col::magenta.withAlpha (0.0f), 90.0f, 220.0f, true));
     g.fillRect (0.0f, 0.0f, W, 240.0f);
@@ -97,57 +142,60 @@ void VoskAudioProcessorEditor::paint (juce::Graphics& g)
     g.fillAll();
 
     // ---- Header ----
-    auto header = getLocalBounds().reduced (16).removeFromTop (56);
+    auto header = juce::Rectangle<int> (0, 0, kDesignW, kDesignH).reduced (16).removeFromTop (56);
 
-    // MantisVex mark: an angular mantis head (triangle + antennae).
     auto markArea = header.removeFromLeft (52).toFloat();
     const float mx = markArea.getCentreX(), my = markArea.getCentreY() + 2.0f;
-    juce::Path head;
-    head.addTriangle (mx, my + 13.0f, mx - 11.0f, my - 7.0f, mx + 11.0f, my - 7.0f);
+    juce::Path headP;
+    headP.addTriangle (mx, my + 13.0f, mx - 11.0f, my - 7.0f, mx + 11.0f, my - 7.0f);
     g.setColour (col::magenta.withAlpha (0.18f));
-    g.fillPath (head);
+    g.fillPath (headP);
     g.setColour (col::magenta);
-    g.strokePath (head, juce::PathStrokeType (2.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
-    g.drawLine (mx - 5.0f, my - 7.0f, mx - 11.0f, my - 17.0f, 1.6f); // antennae
+    g.strokePath (headP, juce::PathStrokeType (2.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    g.drawLine (mx - 5.0f, my - 7.0f, mx - 11.0f, my - 17.0f, 1.6f);
     g.drawLine (mx + 5.0f, my - 7.0f, mx + 11.0f, my - 17.0f, 1.6f);
     g.setColour (col::cyan);
-    g.fillEllipse (mx - 4.5f, my - 3.0f, 3.0f, 3.0f); // eyes
+    g.fillEllipse (mx - 4.5f, my - 3.0f, 3.0f, 3.0f);
     g.fillEllipse (mx + 1.5f, my - 3.0f, 3.0f, 3.0f);
 
-    // Wordmark.
     auto title = header.removeFromLeft (210);
     g.setColour (col::text);
-    g.setFont (vosk::ui::fontKerned (42.0f, 0.22f, true));
+    g.setFont (fontKerned (42.0f, 0.22f, true));
     g.drawText ("VOSK", title, juce::Justification::centredLeft);
     g.setColour (col::magenta);
     g.fillRect ((float) title.getX() + 2.0f, (float) header.getBottom() - 2.0f, 168.0f, 2.5f);
 
     g.setColour (col::dim);
-    g.setFont (vosk::ui::fontKerned (13.5f, 0.28f, true));
-    g.drawText ("MANTISVEX  //  DARKSYNTH ENGINE",
-                header.withTrimmedLeft (10), juce::Justification::centredLeft);
+    g.setFont (fontKerned (13.5f, 0.28f, true));
+    g.drawText ("MANTISVEX  //  DARKSYNTH ENGINE", header.withTrimmedLeft (10),
+                juce::Justification::centredLeft);
 
-    // Divider with accent fade.
-    auto divider = getLocalBounds().reduced (16).withTrimmedTop (62).removeFromTop (1).toFloat();
+    auto divider = juce::Rectangle<int> (0, 0, kDesignW, kDesignH).reduced (16).withTrimmedTop (62)
+                       .removeFromTop (1).toFloat();
     g.setGradientFill (juce::ColourGradient (col::magenta.withAlpha (0.5f), divider.getX(), 0.0f,
                                              col::line.withAlpha (0.0f), divider.getRight(), 0.0f, false));
     g.fillRect (divider);
 }
 
-void VoskAudioProcessorEditor::resized()
+//==============================================================================
+void VoskAudioProcessorEditor::layoutCanvas()
 {
-    // Preset browser bar in the header (right side).
+    auto full = juce::Rectangle<int> (0, 0, kDesignW, kDesignH);
+
+    // Header: scale combo + preset bar on the right.
     {
-        auto header = getLocalBounds().reduced (16).removeFromTop (56);
+        auto header = full.reduced (16).removeFromTop (56);
         auto pb = header.removeFromRight (620);
         presetBar.setBounds (pb.withSizeKeepingCentre (620, 32).translated (0, 4));
+        auto sc = header.removeFromRight (86);
+        scaleBox.setBounds (sc.withSizeKeepingCentre (78, 26).translated (-6, 4));
     }
 
-    auto r = getLocalBounds().reduced (14);
+    auto r = full.reduced (14);
     r.removeFromTop (64); // header
 
-    // --- Oscillator row (3 osc + sub/noise/sync) ---
-    auto oscRow = r.removeFromTop (258);
+    // Oscillator row.
+    auto oscRow = r.removeFromTop (252);
     auto srcCol = oscRow.removeFromRight (336);
     const int ow = oscRow.getWidth() / 3;
     osc1.setBounds (oscRow.removeFromLeft (ow).reduced (5));
@@ -157,8 +205,8 @@ void VoskAudioProcessorEditor::resized()
 
     r.removeFromTop (4);
 
-    // --- Core synthesis row: filter+drive + both envelopes ---
-    auto core = r.removeFromTop (196);
+    // Core synthesis row.
+    auto core = r.removeFromTop (192);
     auto fEnvCol = core.removeFromRight (430);
     auto aEnvCol = core.removeFromRight (430);
     filter.setBounds (core.reduced (5));
@@ -167,8 +215,12 @@ void VoskAudioProcessorEditor::resized()
 
     r.removeFromTop (6);
 
-    // --- Global + Scope + Macros bar at the bottom ---
-    auto globalRow = r.removeFromBottom (108);
+    // On-screen keyboard at the very bottom.
+    keyboard.setBounds (r.removeFromBottom (54).reduced (2, 2));
+    r.removeFromBottom (4);
+
+    // Global + Scope + Macros bar.
+    auto globalRow = r.removeFromBottom (104);
     auto macroCol  = globalRow.removeFromRight (560);
     auto scopeCol  = globalRow.removeFromRight (360);
     global.setBounds (globalRow.reduced (5));
@@ -177,21 +229,18 @@ void VoskAudioProcessorEditor::resized()
 
     r.removeFromTop (4);
 
-    // --- Tab bar + tabbed lower section ---
-    auto tabBar = r.removeFromTop (32);
+    // Tab bar + tabbed lower section.
+    auto tabBar = r.removeFromTop (30);
     tabMod.setBounds (tabBar.removeFromLeft (180).reduced (2, 1));
     tabFx.setBounds  (tabBar.removeFromLeft (180).reduced (2, 1));
 
     auto tabArea = r.reduced (0, 2);
-
-    // MODULATION page: LFO 1 | LFO 2 | Matrix.
     {
         auto a = tabArea;
         lfo1.setBounds (a.removeFromLeft (360).reduced (5));
         lfo2.setBounds (a.removeFromLeft (360).reduced (5));
         matrix.setBounds (a.reduced (5));
     }
-    // FX & OUTPUT page: character / chorus / delay / reverb / tape.
     {
         auto b = tabArea;
         const int w = b.getWidth();

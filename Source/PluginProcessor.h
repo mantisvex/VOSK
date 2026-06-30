@@ -60,6 +60,9 @@ public:
         return (n >= 0 && n < 2) ? modInputs.lfoGlobalPhase[n] : 0.0f;
     }
 
+    // On-screen keyboard (editor) -> synth.
+    juce::MidiKeyboardState keyboardState;
+
 private:
     void renderMono (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi,
                      int numSamples, bool legato);

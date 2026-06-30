@@ -90,7 +90,9 @@ namespace vosk::ui
             const float lineW = radius * 0.15f;
             const float arcR = radius - lineW * 0.7f;
             const float angle = startAngle + pos * (endAngle - startAngle);
-            const auto accent = s.findColour (juce::Slider::rotarySliderFillColourId);
+            const bool hover = s.isMouseOverOrDragging();
+            const auto accent = hover ? s.findColour (juce::Slider::rotarySliderFillColourId).brighter (0.25f)
+                                      : s.findColour (juce::Slider::rotarySliderFillColourId);
 
             // Tick ring.
             const int ticks = 11;
@@ -118,8 +120,9 @@ namespace vosk::ui
             juce::Path val;
             val.addCentredArc (cx, cy, arcR, arcR, 0.0f,
                                juce::jmin (fromAngle, angle), juce::jmax (fromAngle, angle), true);
-            g.setColour (accent.withAlpha (0.20f));
-            g.strokePath (val, juce::PathStrokeType (lineW * 2.4f, juce::PathStrokeType::curved,
+            g.setColour (accent.withAlpha (hover ? 0.36f : 0.20f));
+            g.strokePath (val, juce::PathStrokeType (lineW * (hover ? 3.0f : 2.4f),
+                                                     juce::PathStrokeType::curved,
                                                      juce::PathStrokeType::rounded));
             g.setColour (accent);
             g.strokePath (val, juce::PathStrokeType (lineW, juce::PathStrokeType::curved,

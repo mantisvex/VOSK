@@ -83,6 +83,9 @@ void VoskAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     buffer.clear();
     const int numSamples = buffer.getNumSamples();
 
+    // Merge on-screen keyboard notes into the MIDI stream.
+    keyboardState.processNextMidiBuffer (midiMessages, 0, numSamples, true);
+
     updateModInputs (midiMessages, numSamples);
 
     const int mode = (int) params.voiceMode->load(); // 0 Poly, 1 Mono, 2 Legato

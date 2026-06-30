@@ -279,6 +279,12 @@ namespace vosk::ui
             slider.setBounds (r);
         }
 
+        void parentHierarchyChanged() override
+        {
+            // Value read-out popup on hover/drag, hosted by the top-level editor.
+            slider.setPopupDisplayEnabled (true, true, getTopLevelComponent());
+        }
+
         juce::Slider slider;
         juce::Label  label;
         std::unique_ptr<APVTS::SliderAttachment> attachment;
@@ -536,26 +542,114 @@ namespace vosk::ui
     };
 
     //==========================================================================
-    //  Envelope (amp or filter), ADSR + velocity sensitivity.
+    //  Live ADSR curve display — reads the four params and draws the shape.
+    class EnvelopeDisplay : public juce::Component, private juce::Timer
+    {
+    public:
+        EnvelopeDisplay (APVTS& s, const char* a, const char* d, const char* sus,
+                         const char* r, juce::Colour accent)
+            : col_ (accent),
+              pA (s.getRawParameterValue (a)), pD (s.getRawParameterValue (d)),
+              pS (s.getRawParameterValue (sus)), pR (s.getRawParameterValue (r))
+        {
+            startTimerHz (20);
+        }
+        ~EnvelopeDisplay() override { stopTimer(); }
+
+        void paint (juce::Graphics& g) override
+        {
+            auto r = getLocalBounds().toFloat().reduced (1.0f);
+            g.setColour (col::panel2);
+            g.fillRoundedRectangle (r, 4.0f);
+            g.setColour (col::line);
+            g.drawRoundedRectangle (r, 4.0f, 1.0f);
+
+            auto area = r.reduced (7.0f, 6.0f);
+            const float x0 = area.getX(), y0 = area.getY();
+            const float w = area.getWidth(), h = area.getHeight();
+
+            auto seg = [] (float t, float maxT) { return std::sqrt (juce::jlimit (0.0f, 1.0f, t / maxT)); };
+            const float a = seg (pA->load(), 5.0f);
+            const float d = seg (pD->load(), 5.0f);
+            const float rr = seg (pR->load(), 8.0f);
+            const float sLvl = juce::jlimit (0.0f, 1.0f, pS->load());
+
+            const float sustainW = 0.18f;
+            float total = a + d + sustainW + rr;
+            if (total < 0.001f) total = 1.0f;
+            const float wA = a / total * w, wD = d / total * w;
+            const float wSus = sustainW / total * w, wR = rr / total * w;
+
+            const float bottom = y0 + h, top = y0;
+            const float sustY = bottom - sLvl * h;
+
+            juce::Path p;
+            p.startNewSubPath (x0, bottom);
+            p.lineTo (x0 + wA, top);
+            p.lineTo (x0 + wA + wD, sustY);
+            p.lineTo (x0 + wA + wD + wSus, sustY);
+            p.lineTo (x0 + wA + wD + wSus + wR, bottom);
+
+            // Fill under the curve.
+            juce::Path fill = p;
+            fill.lineTo (x0, bottom);
+            fill.closeSubPath();
+            g.setColour (col_.withAlpha (0.14f));
+            g.fillPath (fill);
+
+            g.setColour (col_.withAlpha (0.25f));
+            g.strokePath (p, juce::PathStrokeType (3.0f));
+            g.setColour (col_);
+            g.strokePath (p, juce::PathStrokeType (1.6f));
+
+            // Node dots.
+            auto dot = [&] (float x, float y) { g.fillEllipse (x - 2.0f, y - 2.0f, 4.0f, 4.0f); };
+            dot (x0 + wA, top);
+            dot (x0 + wA + wD, sustY);
+        }
+
+    private:
+        void timerCallback() override
+        {
+            const float sum = pA->load() + pD->load() + pS->load() + pR->load();
+            if (std::abs (sum - last) > 1.0e-5f) { last = sum; repaint(); }
+        }
+
+        juce::Colour col_;
+        std::atomic<float>* pA; std::atomic<float>* pD; std::atomic<float>* pS; std::atomic<float>* pR;
+        float last = -1.0f;
+    };
+
+    //==========================================================================
+    //  Envelope (amp or filter): live ADSR display + ADSR/vel knobs.
     class EnvPanel : public Panel
     {
     public:
         EnvPanel (APVTS& s, juce::String title, juce::Colour accent,
                   const char* a, const char* d, const char* sus, const char* r, const char* vel)
             : Panel (std::move (title), accent),
+              disp (s, a, d, sus, r, accent),
               atk (s, a,   "A",   accent),
               dec (s, d,   "D",   accent),
               sst (s, sus, "S",   accent),
               rel (s, r,   "R",   accent),
               vs  (s, vel, "VEL", accent)
         {
+            addAndMakeVisible (disp);
             for (auto* c : std::initializer_list<juce::Component*> { &atk, &dec, &sst, &rel, &vs })
                 addAndMakeVisible (c);
         }
 
-        void resized() override { gridLayout (content(), { &atk, &dec, &sst, &rel, &vs }, 5); }
+        void resized() override
+        {
+            auto area = content();
+            disp.setBounds (area.removeFromTop (juce::jmin (62, area.getHeight() / 3)).reduced (0, 0));
+            area.removeFromTop (4);
+            gridLayout (area, { &atk, &dec, &sst, &rel, &vs }, 5);
+        }
 
     private:
+        EnvelopeDisplay disp;
         Knob atk, dec, sst, rel, vs;
     };
 
@@ -599,7 +693,7 @@ namespace vosk::ui
 
     //==========================================================================
     //  8-slot modulation matrix.
-    class MatrixPanel : public Panel
+    class MatrixPanel : public Panel, private juce::Timer
     {
     public:
         MatrixPanel (APVTS& s) : Panel ("MOD MATRIX", col::purple)
@@ -610,11 +704,15 @@ namespace vosk::ui
                 src.push_back (std::make_unique<Choice> (s, ids::mod (n, ids::kModSource), juce::String()));
                 dst.push_back (std::make_unique<Choice> (s, ids::mod (n, ids::kModDest),   juce::String()));
                 amt.push_back (std::make_unique<Fader>  (s, ids::mod (n, ids::kModAmount), col::purple));
+                srcP[i] = s.getRawParameterValue (ids::mod (n, ids::kModSource));
+                dstP[i] = s.getRawParameterValue (ids::mod (n, ids::kModDest));
                 addAndMakeVisible (*src.back());
                 addAndMakeVisible (*dst.back());
                 addAndMakeVisible (*amt.back());
             }
+            startTimerHz (8);
         }
+        ~MatrixPanel() override { stopTimer(); }
 
         void paint (juce::Graphics& g) override
         {
@@ -627,6 +725,23 @@ namespace vosk::ui
             g.drawText ("SOURCE", header.removeFromLeft (sw), juce::Justification::centredLeft);
             g.drawText ("DEST",   header.removeFromLeft (sw), juce::Justification::centredLeft);
             g.drawText ("AMOUNT", header, juce::Justification::centredLeft);
+
+            // Highlight active routings (source and dest both set).
+            auto rows = area.withTrimmedTop (16);
+            const int rh = rows.getHeight() / 8;
+            for (int i = 0; i < 8; ++i)
+            {
+                auto row = rows.removeFromTop (rh);
+                const bool active = srcP[i] != nullptr && dstP[i] != nullptr
+                                    && (int) srcP[i]->load() != 0 && (int) dstP[i]->load() != 0;
+                if (active)
+                {
+                    g.setColour (col::purple.withAlpha (0.12f));
+                    g.fillRoundedRectangle (row.toFloat().reduced (1.0f, 1.5f), 3.0f);
+                    g.setColour (col::purple.withAlpha (0.5f));
+                    g.fillRoundedRectangle (row.toFloat().removeFromLeft (3.0f).reduced (0.0f, 2.0f), 1.5f);
+                }
+            }
         }
 
         void resized() override
@@ -644,8 +759,20 @@ namespace vosk::ui
         }
 
     private:
+        void timerCallback() override
+        {
+            int sig = 0;
+            for (int i = 0; i < 8; ++i)
+                if (srcP[i] && dstP[i] && (int) srcP[i]->load() != 0 && (int) dstP[i]->load() != 0)
+                    sig |= (1 << i);
+            if (sig != lastSig) { lastSig = sig; repaint(); }
+        }
+
         std::vector<std::unique_ptr<Choice>> src, dst;
         std::vector<std::unique_ptr<Fader>>  amt;
+        std::atomic<float>* srcP[8] { nullptr };
+        std::atomic<float>* dstP[8] { nullptr };
+        int lastSig = -1;
     };
 
     //==========================================================================
@@ -843,7 +970,18 @@ namespace vosk::ui
             g.fillRoundedRectangle (sc, 4.0f);
             g.setColour (col::line);
             g.drawRoundedRectangle (sc, 4.0f, 1.0f);
-            g.setColour (col::line.withAlpha (0.5f));
+
+            // Faint grid.
+            g.setColour (col::line.withAlpha (0.35f));
+            for (int c = 1; c < 6; ++c)
+            {
+                const float gx = sc.getX() + sc.getWidth() * c / 6.0f;
+                g.drawVerticalLine ((int) gx, sc.getY() + 3.0f, sc.getBottom() - 3.0f);
+            }
+            const float q = sc.getHeight() * 0.25f;
+            g.drawHorizontalLine ((int) (sc.getY() + q), sc.getX() + 2.0f, sc.getRight() - 2.0f);
+            g.drawHorizontalLine ((int) (sc.getBottom() - q), sc.getX() + 2.0f, sc.getRight() - 2.0f);
+            g.setColour (col::line.withAlpha (0.7f));
             g.drawHorizontalLine ((int) sc.getCentreY(), sc.getX() + 2.0f, sc.getRight() - 2.0f);
 
             // Trigger on a rising zero-crossing for a stable trace.

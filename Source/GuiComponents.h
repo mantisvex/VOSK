@@ -3,6 +3,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <vector>
 #include <memory>
+#include <functional>
 #include "VoskLookAndFeel.h"
 #include "Parameters.h"
 #include "ModMatrix.h"
@@ -118,6 +119,9 @@ namespace vosk::ui
             attachment->setValueAsCompleteGesture ((float) cell);
         }
 
+        // Live phase playhead (0..1) drawn on the selected cell; <0 disables.
+        void setLivePhase (float p) { if (livePhase != p) { livePhase = p; repaint(); } }
+
         void paint (juce::Graphics& g) override
         {
             if (num <= 0) return;
@@ -132,6 +136,13 @@ namespace vosk::ui
                 g.drawRoundedRectangle (cell, 4.0f, sel ? 1.4f : 1.0f);
                 drawShapeGlyph (g, cell.reduced (cell.getWidth() * 0.22f, cell.getHeight() * 0.30f),
                                 kind, i, sel ? accent : col::dim, sel ? 1.9f : 1.4f);
+
+                if (sel && livePhase >= 0.0f)
+                {
+                    const float px = cell.getX() + livePhase * cell.getWidth();
+                    g.setColour (accent.brighter (0.3f).withAlpha (0.85f));
+                    g.drawLine (px, cell.getY() + 3.0f, px, cell.getBottom() - 3.0f, 1.5f);
+                }
             }
         }
 
@@ -141,6 +152,7 @@ namespace vosk::ui
         GlyphKind kind;
         juce::Colour accent;
         int num = 0, index = 0;
+        float livePhase = -1.0f;
     };
 
     //--------------------------------------------------------------------------
@@ -511,12 +523,97 @@ namespace vosk::ui
     };
 
     //==========================================================================
-    //  Filter + pre-filter drive.
+    //  Live filter response curve (approximate magnitude display).
+    class FilterResponse : public juce::Component, private juce::Timer
+    {
+    public:
+        FilterResponse (APVTS& s, juce::Colour accent)
+            : col_ (accent),
+              pCut (s.getRawParameterValue (ids::kCutoff)),
+              pRes (s.getRawParameterValue (ids::kResonance)),
+              pType (s.getRawParameterValue (ids::kFilterType))
+        {
+            startTimerHz (20);
+        }
+        ~FilterResponse() override { stopTimer(); }
+
+        void paint (juce::Graphics& g) override
+        {
+            auto r = getLocalBounds().toFloat().reduced (1.0f);
+            g.setColour (col::panel2);
+            g.fillRoundedRectangle (r, 4.0f);
+            g.setColour (col::line);
+            g.drawRoundedRectangle (r, 4.0f, 1.0f);
+
+            auto a = r.reduced (4.0f, 5.0f);
+            // Decade grid (100 / 1k / 10k).
+            g.setColour (col::line.withAlpha (0.35f));
+            for (float f : { 100.0f, 1000.0f, 10000.0f })
+            {
+                const float x = a.getX() + a.getWidth() * fpos (f);
+                g.drawVerticalLine ((int) x, a.getY(), a.getBottom());
+            }
+
+            const float fc  = juce::jlimit (20.0f, 20000.0f, pCut->load());
+            const float res = pRes->load();
+            const bool  ladder = pType->load() < 0.5f;
+            const float order = ladder ? 4.0f : 2.0f;
+
+            const float dbTop = 24.0f, dbBot = -60.0f;
+            auto yFor = [&] (float db)
+            { return a.getY() + (dbTop - db) / (dbTop - dbBot) * a.getHeight(); };
+
+            juce::Path p;
+            const int N = (int) a.getWidth();
+            for (int i = 0; i <= N; ++i)
+            {
+                const float x = a.getX() + (float) i;
+                const float f = 20.0f * std::pow (1000.0f, (float) i / juce::jmax (1, N));
+                const float lr = std::log2 (f / fc);                          // octaves from cutoff
+                const float rolloff = -order * 6.0f * juce::jmax (0.0f, lr);  // slope above cutoff
+                const float peak = res * 24.0f * std::exp (-(lr * lr) / (2.0f * 0.25f));
+                const float y = yFor (rolloff + peak);
+                if (i == 0) p.startNewSubPath (x, y); else p.lineTo (x, y);
+            }
+
+            juce::Path fill = p;
+            fill.lineTo (a.getRight(), a.getBottom());
+            fill.lineTo (a.getX(), a.getBottom());
+            fill.closeSubPath();
+            g.setColour (col_.withAlpha (0.13f));
+            g.fillPath (fill);
+            g.setColour (col_.withAlpha (0.25f));
+            g.strokePath (p, juce::PathStrokeType (3.0f));
+            g.setColour (col_);
+            g.strokePath (p, juce::PathStrokeType (1.6f));
+
+            // Cutoff marker.
+            const float cx = a.getX() + a.getWidth() * fpos (fc);
+            g.setColour (col_.withAlpha (0.5f));
+            g.drawVerticalLine ((int) cx, a.getY(), a.getBottom());
+        }
+
+    private:
+        static float fpos (float f) { return juce::jlimit (0.0f, 1.0f, std::log (f / 20.0f) / std::log (1000.0f)); }
+        void timerCallback() override
+        {
+            const float s = pCut->load() + pRes->load() * 1000.0f + pType->load() * 7.0f;
+            if (std::abs (s - last) > 1.0e-3f) { last = s; repaint(); }
+        }
+
+        juce::Colour col_;
+        std::atomic<float>* pCut; std::atomic<float>* pRes; std::atomic<float>* pType;
+        float last = -1.0f;
+    };
+
+    //==========================================================================
+    //  Filter + pre-filter drive (with live response graph).
     class FilterPanel : public Panel
     {
     public:
         FilterPanel (APVTS& s)
             : Panel ("FILTER  //  DRIVE", col::amber),
+              resp    (s, col::amber),
               type    (s, ids::kFilterType, "TYPE"),
               cutoff  (s, ids::kCutoff,     "CUTOFF", col::amber),
               reso    (s, ids::kResonance,  "RESO",   col::amber),
@@ -524,6 +621,7 @@ namespace vosk::ui
               keyTrk  (s, ids::kKeyTrack,   "KEY TRK", col::amber),
               envAmt  (s, ids::kFilterEnvAmt, "ENV AMT", col::amber)
         {
+            addAndMakeVisible (resp);
             for (auto* c : std::initializer_list<juce::Component*> {
                      &type, &cutoff, &reso, &drive, &keyTrk, &envAmt })
                 addAndMakeVisible (c);
@@ -532,11 +630,14 @@ namespace vosk::ui
         void resized() override
         {
             auto area = content();
+            resp.setBounds (area.removeFromLeft ((int) (area.getWidth() * 0.32f)).reduced (0, 2));
+            area.removeFromLeft (8);
             type.setBounds (area.removeFromTop (32).removeFromLeft (160).reduced (2, 1));
             gridLayout (area, { &cutoff, &reso, &drive, &keyTrk, &envAmt }, 5);
         }
 
     private:
+        FilterResponse resp;
         Choice type;
         Knob   cutoff, reso, drive, keyTrk, envAmt;
     };
@@ -655,10 +756,10 @@ namespace vosk::ui
 
     //==========================================================================
     //  LFO panel (one of two).
-    class LfoPanel : public Panel
+    class LfoPanel : public Panel, private juce::Timer
     {
     public:
-        LfoPanel (APVTS& s, int n, juce::Colour accent)
+        LfoPanel (APVTS& s, int n, juce::Colour accent, std::function<float()> phaseFn = {})
             : Panel ("LFO " + juce::String (n), accent),
               shape (s, ids::lfo (n, ids::kLfoShape), GlyphKind::LfoShape, accent),
               trig  (s, ids::lfo (n, ids::kLfoTrigger),  "TRIG"),
@@ -666,12 +767,15 @@ namespace vosk::ui
               sync  (s, ids::lfo (n, ids::kLfoSync), "SYNC", accent),
               rate  (s, ids::lfo (n, ids::kLfoRate),  "RATE",  accent),
               phase (s, ids::lfo (n, ids::kLfoPhase), "PHASE", accent),
-              fade  (s, ids::lfo (n, ids::kLfoFade),  "FADE",  accent)
+              fade  (s, ids::lfo (n, ids::kLfoFade),  "FADE",  accent),
+              getPhase (std::move (phaseFn))
         {
             for (auto* c : std::initializer_list<juce::Component*> {
                      &shape, &trig, &div, &sync, &rate, &phase, &fade })
                 addAndMakeVisible (c);
+            if (getPhase) startTimerHz (30);
         }
+        ~LfoPanel() override { stopTimer(); }
 
         void resized() override
         {
@@ -685,10 +789,17 @@ namespace vosk::ui
         }
 
     private:
+        void timerCallback() override
+        {
+            const float p = getPhase ? getPhase() : -1.0f;
+            shape.setLivePhase (p - std::floor (p));
+        }
+
         WaveSelector shape;
         Choice trig, div;
         Toggle sync;
         Knob   rate, phase, fade;
+        std::function<float()> getPhase;
     };
 
     //==========================================================================

@@ -54,6 +54,12 @@ public:
     vosk::ScopeBuffer scopeBuffer;
     std::atomic<float> meterL { 0.0f }, meterR { 0.0f };
 
+    // Shared free-running LFO phase, for the editor's live LFO indicators.
+    float getLfoPhase (int n) const noexcept
+    {
+        return (n >= 0 && n < 2) ? modInputs.lfoGlobalPhase[n] : 0.0f;
+    }
+
 private:
     void renderMono (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi,
                      int numSamples, bool legato);

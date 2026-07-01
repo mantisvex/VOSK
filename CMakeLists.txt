@@ -28,11 +28,19 @@ else()
     FetchContent_MakeAvailable(JUCE)
 endif()
 
-# Auto-copy the built VST3 into a local plugins folder only when it exists
-# (i.e. on the author's machine). Elsewhere JUCE copies to the OS default.
+# Auto-copy the built plugin into a local folder ONLY on the author's machine
+# (avoids permission failures on CI / other machines writing to system folders).
 set(VOSK_LOCAL_COPY "")
+set(VOSK_DO_COPY FALSE)
 if(WIN32 AND EXISTS "E:/Audio plugins")
     set(VOSK_LOCAL_COPY VST3_COPY_DIR "E:/Audio plugins")
+    set(VOSK_DO_COPY TRUE)
+endif()
+
+# Formats: VST3 + Standalone everywhere; AU only on macOS.
+set(VOSK_FORMATS VST3 Standalone)
+if(APPLE)
+    list(APPEND VOSK_FORMATS AU)
 endif()
 
 # ---------------------------------------------------------------------------
@@ -44,16 +52,17 @@ juce_add_plugin(VOSK
     BUNDLE_ID                 "com.mantisvex.vosk"
     PLUGIN_MANUFACTURER_CODE  Mvex
     PLUGIN_CODE               Vosk
-    FORMATS                   VST3 Standalone
+    FORMATS                   ${VOSK_FORMATS}
     PRODUCT_NAME              "VOSK"
     IS_SYNTH                  TRUE
     NEEDS_MIDI_INPUT          TRUE
     NEEDS_MIDI_OUTPUT         FALSE
     IS_MIDI_EFFECT            FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
-    COPY_PLUGIN_AFTER_BUILD   TRUE
+    COPY_PLUGIN_AFTER_BUILD   ${VOSK_DO_COPY}
     ${VOSK_LOCAL_COPY}
-    VST3_CATEGORIES           Instrument Synth)
+    VST3_CATEGORIES           Instrument Synth
+    AU_MAIN_TYPE              kAudioUnitType_MusicDevice)
 
 # Embedded resources (the UI font, so it looks identical on every machine).
 # Rajdhani (SIL OFL 1.1) — see Resources/FONT-OFL.txt.

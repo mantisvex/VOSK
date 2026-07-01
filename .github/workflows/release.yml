@@ -1,0 +1,86 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+          - os: macos-latest
+            name: macOS
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release --target VOSK_All --parallel 4
+
+      # ---- Package Windows ----
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $art = "build/VOSK_artefacts/Release"
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item -Recurse "$art/VST3/VOSK.vst3" dist/
+          Copy-Item "$art/Standalone/VOSK.exe" dist/
+          Copy-Item "README.md" dist/
+          Compress-Archive -Path dist/* -DestinationPath "VOSK-${{ github.ref_name }}-Windows.zip" -Force
+
+      # ---- Package macOS (VST3 + AU + Standalone .app) ----
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          art="build/VOSK_artefacts"
+          mkdir -p dist
+          cp -R "$art/VST3/VOSK.vst3" dist/ 2>/dev/null || cp -R "$art/Release/VST3/VOSK.vst3" dist/
+          cp -R "$art/AU/VOSK.component" dist/ 2>/dev/null || cp -R "$art/Release/AU/VOSK.component" dist/ 2>/dev/null || true
+          cp -R "$art/Standalone/VOSK.app" dist/ 2>/dev/null || cp -R "$art/Release/Standalone/VOSK.app" dist/ 2>/dev/null || true
+          cp README.md dist/
+          ditto -c -k --keepParent dist "VOSK-${{ github.ref_name }}-macOS.zip"
+
+      - name: Upload to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            VOSK-*-Windows.zip
+            VOSK-*-macOS.zip
+          body: |
+            VOSK — MantisVex darksynth synthesizer.
+
+            **Windows:** VST3 + Standalone (`VOSK-*-Windows.zip`). Drop `VOSK.vst3`
+            into `C:\Program Files\Common Files\VST3\`.
+
+            **macOS:** VST3 + AU + Standalone (`VOSK-*-macOS.zip`). Copy `VOSK.vst3`
+            to `~/Library/Audio/Plug-Ins/VST3/` and `VOSK.component` to
+            `~/Library/Audio/Plug-Ins/Components/`. Builds are **unsigned** — on
+            first run, right-click → Open (or `xattr -cr` the bundle) to bypass
+            Gatekeeper.
+
+            Factory presets ship built-in.
+
+      # For manual runs (no tag): keep artifacts downloadable.
+      - name: Upload artifact
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: VOSK-${{ matrix.name }}
+          path: |
+            VOSK-*-Windows.zip
+            VOSK-*-macOS.zip

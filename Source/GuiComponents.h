@@ -186,15 +186,13 @@ namespace vosk::ui
             prev.setButtonText ("<");
             next.setButtonText (">");
             mutate.setButtonText ("MUTATE");
-            save.setButtonText ("SAVE");
-            init.setButtonText ("INIT");
+            menuBtn.setButtonText ("FILE");
             mutate.setColour (juce::TextButton::textColourOffId, col::magenta); // signature gesture
             prev.onClick = [this] { manager.step (-1, cat.getText()); };
             next.onClick = [this] { manager.step (+1, cat.getText()); };
             mutate.onClick = [this] { manager.randomise(); };
-            init.onClick = [this] { manager.loadInit(); };
-            save.onClick = [this] { promptSave(); };
-            for (auto* b : std::initializer_list<juce::Button*> { &prev, &next, &mutate, &save, &init })
+            menuBtn.onClick = [this] { showMenu(); };
+            for (auto* b : std::initializer_list<juce::Button*> { &prev, &next, &mutate, &menuBtn })
                 addAndMakeVisible (b);
 
             manager.addChangeListener (this);
@@ -211,9 +209,8 @@ namespace vosk::ui
             preset.setBounds (r.removeFromLeft (190).reduced (2, 2));
             next.setBounds   (r.removeFromLeft (24).reduced (1, 2));
             r.removeFromLeft (8);
-            mutate.setBounds (r.removeFromLeft (70).reduced (2, 2));
-            save.setBounds   (r.removeFromLeft (58).reduced (2, 2));
-            init.setBounds   (r.removeFromLeft (52).reduced (2, 2));
+            mutate.setBounds (r.removeFromLeft (72).reduced (2, 2));
+            menuBtn.setBounds (r.removeFromLeft (58).reduced (2, 2));
         }
 
     private:
@@ -243,6 +240,56 @@ namespace vosk::ui
             rebuildPresetList();
         }
 
+        void showMenu()
+        {
+            juce::PopupMenu m;
+            m.addItem ("Save Preset…",  [this] { promptSave(); });
+            m.addItem ("Init Patch",         [this] { manager.loadInit(); });
+            m.addSeparator();
+            m.addItem ("Import Preset…", [this]
+            {
+                chooseOpen ("Import preset", "*.voskpreset", [this] (juce::File f) { manager.importPreset (f); });
+            });
+            m.addItem ("Export Preset…", [this]
+            {
+                const auto nm = manager.getCurrentName().isNotEmpty() ? manager.getCurrentName() : juce::String ("VOSK Patch");
+                chooseSave ("Export preset", nm + ".voskpreset", "*.voskpreset",
+                            [this, nm] (juce::File f) { manager.exportPreset (f.withFileExtension ("voskpreset"), nm); });
+            });
+            m.addSeparator();
+            m.addItem ("Import Bank…", [this]
+            {
+                chooseOpen ("Import bank", "*.voskbank", [this] (juce::File f) { manager.importBank (f); });
+            });
+            m.addItem ("Export Bank…", [this]
+            {
+                chooseSave ("Export bank", "VOSK User Bank.voskbank", "*.voskbank",
+                            [this] (juce::File f) { manager.exportBank (f.withFileExtension ("voskbank")); });
+            });
+            m.addSeparator();
+            m.addItem ("Show Presets Folder", [this] { manager.getUserDir().revealToUser(); });
+
+            m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (menuBtn));
+        }
+
+        void chooseOpen (const juce::String& title, const juce::String& wildcard, std::function<void (juce::File)> onPick)
+        {
+            chooser = std::make_unique<juce::FileChooser> (title, manager.getUserDir(), wildcard);
+            chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+                                  [onPick] (const juce::FileChooser& fc)
+                                  { if (fc.getResult() != juce::File()) onPick (fc.getResult()); });
+        }
+
+        void chooseSave (const juce::String& title, const juce::String& defName,
+                         const juce::String& wildcard, std::function<void (juce::File)> onPick)
+        {
+            chooser = std::make_unique<juce::FileChooser> (title, manager.getUserDir().getChildFile (defName), wildcard);
+            chooser->launchAsync (juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles
+                                      | juce::FileBrowserComponent::warnAboutOverwriting,
+                                  [onPick] (const juce::FileChooser& fc)
+                                  { if (fc.getResult() != juce::File()) onPick (fc.getResult()); });
+        }
+
         void promptSave()
         {
             auto* w = new juce::AlertWindow ("Save Preset", "Preset name:",
@@ -264,7 +311,8 @@ namespace vosk::ui
 
         vosk::PresetManager& manager;
         juce::ComboBox cat, preset;
-        juce::TextButton prev, next, mutate, save, init;
+        juce::TextButton prev, next, mutate, menuBtn;
+        std::unique_ptr<juce::FileChooser> chooser;
         bool updating = false;
     };
 

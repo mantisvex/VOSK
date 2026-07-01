@@ -25,8 +25,13 @@ namespace vosk
         juce::StringArray getCategories() const
         {
             juce::StringArray cats { "All" };
-            for (auto& c : { "Bass", "Lead", "Pluck", "Stab", "FX" })
+            // Preferred ordering; only include those actually present.
+            for (auto& c : { "Bass", "Lead", "Pluck", "Keys", "Stab", "Pad", "Arp", "FX" })
                 if (hasCategory (c)) cats.add (c);
+            // Any other categories not in the preferred list (e.g. bank tags).
+            for (auto& e : entries)
+                if (! cats.contains (e.category) && e.category != "User")
+                    cats.add (e.category);
             if (hasCategory ("User")) cats.add ("User");
             return cats;
         }
@@ -157,6 +162,63 @@ namespace vosk
             }
             rebuild();
             currentName = name;
+            currentCategory = "User";
+            sendChangeMessage();
+        }
+
+        juce::File getUserDir() const { return userDir; }
+
+        //-- Import / export --------------------------------------------------
+        // Write the current state to a .voskpreset file anywhere.
+        bool exportPreset (const juce::File& dest, const juce::String& name) const
+        {
+            if (auto xml = apvts.copyState().createXml())
+            {
+                xml->setAttribute ("voskName", name.isNotEmpty() ? name : dest.getFileNameWithoutExtension());
+                xml->setAttribute ("voskCategory", "User");
+                return xml->writeTo (dest);
+            }
+            return false;
+        }
+
+        // Copy an external .voskpreset into the user library and load it.
+        void importPreset (const juce::File& src)
+        {
+            if (! src.existsAsFile()) return;
+            auto dest = userDir.getChildFile (src.getFileName());
+            if (dest != src) src.copyFileTo (dest);
+            rebuild();
+            juce::String nm = dest.getFileNameWithoutExtension();
+            if (auto xml = juce::XmlDocument::parse (dest)) nm = xml->getStringAttribute ("voskName", nm);
+            currentName = nm; currentCategory = "User";
+            sendChangeMessage();
+        }
+
+        // Bundle every user preset into a single shareable .voskbank file.
+        bool exportBank (const juce::File& dest) const
+        {
+            juce::XmlElement bank ("VoskBank");
+            for (auto& e : entries)
+            {
+                if (e.isFactory) continue;
+                if (auto x = juce::XmlDocument::parse (e.file))
+                    bank.addChildElement (x.release());
+            }
+            return bank.getNumChildElements() > 0 && bank.writeTo (dest);
+        }
+
+        // Unpack a .voskbank into the user library.
+        void importBank (const juce::File& src)
+        {
+            auto bank = juce::XmlDocument::parse (src);
+            if (bank == nullptr || ! bank->hasTagName ("VoskBank")) return;
+            for (auto* child : bank->getChildIterator())
+            {
+                const juce::String nm = child->getStringAttribute ("voskName", "Imported");
+                auto dest = userDir.getChildFile (juce::File::createLegalFileName (nm) + ".voskpreset");
+                child->writeTo (dest);
+            }
+            rebuild();
             currentCategory = "User";
             sendChangeMessage();
         }

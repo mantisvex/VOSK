@@ -64,10 +64,11 @@ scale** control (75–150%, via an AffineTransform on a fixed-size canvas), an
   up, pulls cutoff down (up to 4 octaves), and widens unison detune on all oscillators,
   "dirtying" the whole patch in one knob. ROT is also a matrix source for extra routing.
 - **Preset system** (`Presets.h`, `PresetManager.h`): a categorised browser in the header
-  (`< [Category] [Preset] > SAVE INIT`) with a factory library of ~28 ready-to-play
-  darksynth patches (heavy Carpenter Brut / Magonia-style basses plus leads, plucks, stabs,
-  FX). Presets are sparse overrides on the defaults; user presets save to
-  `Documents/MantisVex/VOSK/Presets/*.voskpreset` and appear under a "User" category.
+  (`< [Category] [Preset] > MUTATE FILE`) with a factory library of ~60 ready-to-play
+  darksynth patches across Bass / Lead / Pluck / Keys / Stab / Pad / Arp / FX (all
+  volume-controlled). Presets are sparse overrides on the defaults. The **FILE** menu
+  covers Save, Init, and **import/export** of single presets (`.voskpreset`) and whole
+  **banks** (`.voskbank` bundles); user presets live in `Documents/MantisVex/VOSK/Presets`.
 - **Poly** (8 voices, JUCE stealing) / **Mono** / **Legato** with exponential
   **glide** and **pitch bend**.
 

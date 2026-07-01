@@ -89,6 +89,9 @@ Build products land in `build/VOSK_artefacts/` (VST3, Standalone, and AU on macO
 An [Inno Setup](https://jrsoftware.org/isinfo.php) installer script and a quick local
 install helper are in [`installer/`](installer/).
 
+Want to hack on it? See **[CONTRIBUTING.md](CONTRIBUTING.md)** for the architecture, DSP
+notes and dev workflow.
+
 ## Credits
 
 - Built on the [JUCE](https://juce.com) framework.

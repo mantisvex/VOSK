@@ -1,5 +1,7 @@
 # VOSK — Complete: Voice + Unison + Filter + Modulation + FX + Macros
 
+<p align="center"><img src="docs/screenshot.png" width="960" alt="VOSK darksynth synthesizer GUI"></p>
+
 Darksynth / cyberpunk subtractive synthesizer (MantisVex). All six stages built: **1**
 band-limited oscillators + voicing, **2** Szabo supersaw unison, **3** pre-filter drive +
 two filter topologies + filter envelope, **4** 2 envelopes + 2 LFOs + 8-slot mod matrix,

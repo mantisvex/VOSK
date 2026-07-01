@@ -174,3 +174,14 @@ around the center so the detune stays balanced. Gains are power-normalised
 (`1/√Σg²`) so patch loudness barely moves with the detune knob or voice count
 while the center-vs-side balance is preserved. Spread pans voices symmetrically
 by index across [−1,+1] with a constant-power law (center stays centered).
+
+## License
+
+VOSK is released under the **GNU General Public License v3.0** — see [`LICENSE`](LICENSE).
+
+Copyright © 2026 MantisVex.
+
+This project builds on [JUCE](https://juce.com), which is used here under its GPLv3
+terms; GPLv3 is therefore the appropriate license for VOSK. The embedded UI font
+(Rajdhani) is licensed separately under the SIL Open Font License — see
+[`Resources/FONT-OFL.txt`](Resources/FONT-OFL.txt).

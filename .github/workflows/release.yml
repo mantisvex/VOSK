@@ -22,7 +22,7 @@ jobs:
             name: macOS
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release
@@ -54,26 +54,25 @@ jobs:
           cp README.md dist/
           ditto -c -k --keepParent dist "VOSK-${{ github.ref_name }}-macOS.zip"
 
-      - name: Upload to release
+      - name: Publish to release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            VOSK-*-Windows.zip
-            VOSK-*-macOS.zip
-          body: |
-            VOSK — MantisVex darksynth synthesizer.
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES=$(cat <<'EOF'
+          VOSK — MantisVex darksynth synthesizer.
 
-            **Windows:** VST3 + Standalone (`VOSK-*-Windows.zip`). Drop `VOSK.vst3`
-            into `C:\Program Files\Common Files\VST3\`.
+          **Windows:** VST3 + Standalone (`VOSK-*-Windows.zip`). Drop `VOSK.vst3` into `C:\Program Files\Common Files\VST3\`.
 
-            **macOS:** VST3 + AU + Standalone (`VOSK-*-macOS.zip`). Copy `VOSK.vst3`
-            to `~/Library/Audio/Plug-Ins/VST3/` and `VOSK.component` to
-            `~/Library/Audio/Plug-Ins/Components/`. Builds are **unsigned** — on
-            first run, right-click → Open (or `xattr -cr` the bundle) to bypass
-            Gatekeeper.
+          **macOS:** VST3 + AU + Standalone (`VOSK-*-macOS.zip`). Copy `VOSK.vst3` to `~/Library/Audio/Plug-Ins/VST3/` and `VOSK.component` to `~/Library/Audio/Plug-Ins/Components/`. Builds are **unsigned** — on first run, right-click → Open (or `xattr -cr` the bundle) to get past Gatekeeper.
 
-            Factory presets ship built-in.
+          Factory presets ship built-in.
+          EOF
+          )
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "VOSK $TAG" --notes "$NOTES" || true
+          gh release upload "$TAG" VOSK-*.zip --clobber
 
       # For manual runs (no tag): keep artifacts downloadable.
       - name: Upload artifact
@@ -81,6 +80,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: VOSK-${{ matrix.name }}
-          path: |
-            VOSK-*-Windows.zip
-            VOSK-*-macOS.zip
+          path: VOSK-*.zip

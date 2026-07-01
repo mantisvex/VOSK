@@ -5,6 +5,19 @@ band-limited oscillators + voicing, **2** Szabo supersaw unison, **3** pre-filte
 two filter topologies + filter envelope, **4** 2 envelopes + 2 LFOs + 8-slot mod matrix,
 **5** FX chain (chorus → delay → reverb), **6** macros (4 assignable + Hero "ROT").
 
+## Download
+
+Grab the latest build from the **[Releases page](https://github.com/mantisvex/VOSK/releases/latest)**.
+
+- **Windows** — `VOSK-*-Windows.zip` (VST3 + Standalone). Drop `VOSK.vst3` into
+  `C:\Program Files\Common Files\VST3\`, then rescan in your DAW.
+- **macOS** — `VOSK-*-macOS.zip` (VST3 + AU + Standalone). Copy `VOSK.vst3` to
+  `~/Library/Audio/Plug-Ins/VST3/` and `VOSK.component` to
+  `~/Library/Audio/Plug-Ins/Components/`. Builds are **unsigned**, so on first launch
+  right-click → **Open** (or run `xattr -cr /path/to/VOSK.vst3`) to get past Gatekeeper.
+
+Factory presets ship built-in. To build from source instead, see **Build** below.
+
 The GUI is a custom darksynth interface (`VoskLookAndFeel.h` + `GuiComponents.h`):
 charcoal panels with neon accent arcs, visual waveform selectors, an oscilloscope +
 stereo meter, sectioned into 3 oscillators, sub/noise/sync, filter+drive, amp/filter
